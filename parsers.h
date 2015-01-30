@@ -16,6 +16,7 @@
 
 /* Add the name of any new parser definition function here */
 #define PARSER_LIST \
+	AdaParser, \
 	AntParser, \
 	AsmParser, \
 	AspParser, \
@@ -27,20 +28,23 @@
 	CssParser, \
 	CsharpParser, \
 	CobolParser, \
+	DParser, \
 	DosBatchParser, \
 	EiffelParser, \
 	ErlangParser, \
+	FalconParser, \
 	FlexParser, \
 	FortranParser, \
+	GoParser, \
 	HtmlParser, \
 	JavaParser, \
 	JavaScriptParser, \
+	JsonParser, \
 	LispParser, \
 	LuaParser, \
 	MakefileParser, \
 	MatLabParser, \
-	ObjCParser, \
-	ObjCppParser, \
+	ObjcParser, \
 	OcamlParser, \
 	PascalParser, \
 	PerlParser, \
@@ -48,6 +52,7 @@
 	PythonParser, \
 	RexxParser, \
 	RubyParser, \
+	RustParser, \
 	SchemeParser, \
 	ShParser, \
 	SlangParser, \
@@ -57,9 +62,12 @@
 	TexParser, \
 	VeraParser, \
 	VerilogParser, \
+	SystemVerilogParser, \
 	VhdlParser, \
 	VimParser, \
-	YaccParser
+	WindResParser, \
+	YaccParser, \
+	ZephirParser
 
 #endif  /* _PARSERS_H */
 

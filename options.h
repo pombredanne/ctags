@@ -11,7 +11,7 @@
 #ifndef _OPTIONS_H
 #define _OPTIONS_H
 
-#if defined(OPTION_WRITE) || defined(VAXC)
+#if defined(OPTION_WRITE)
 # define CONST_OPTION
 #else
 # define CONST_OPTION const
@@ -27,6 +27,7 @@
 #include "args.h"
 #include "parse.h"
 #include "strlist.h"
+#include "trashbox.h"
 #include "vstring.h"
 
 /*
@@ -43,6 +44,7 @@ typedef struct sCookedArgs {
 	boolean isOption;
 	boolean longOption;
 	const char* parameter;
+	TrashBox* trash_box;
 	/* public */
 	char* item;
 } cookedArgs;
@@ -97,6 +99,7 @@ typedef struct sOptionValues {
 	char *fileList;         /* -L  name of file containing names of files */
 	char *tagFileName;      /* -o  name of tags file */
 	stringList* headerExt;  /* -h  header extensions */
+	char* configFilename;   /* --config-filename  use instead of 'ctags' in option file names */
 	stringList* etagsInclude;/* --etags-include  list of TAGS files to include*/
 	unsigned int tagFileFormat;/* --format  tag file format (level) */
 	boolean if0;            /* --if0  examine code within "#if 0" branch */
@@ -108,6 +111,9 @@ typedef struct sOptionValues {
 	boolean tagRelative;    /* --tag-relative file paths relative to tag file */
 	boolean printTotals;    /* --totals  print cumulative statistics */
 	boolean lineDirectives; /* --linedirectives  process #line directives */
+	boolean printLanguage;  /* --print-language */
+	boolean guessLanguageEagerly; /* --guess-language-eagerly|-G */
+	boolean quiet;		      /* --quiet */
 #ifdef DEBUG
 	long debugLevel;        /* -D  debugging output */
 	unsigned long breakLine;/* -b  source line at which to call lineBreak() */
@@ -122,7 +128,12 @@ extern CONST_OPTION optionValues		Option;
 /*
 *   FUNCTION PROTOTYPES
 */
+extern void notice (const char *const format, ...) __printf__ (1, 2);
 extern void verbose (const char *const format, ...) __printf__ (1, 2);
+#define BEGIN_VERBOSE(VFP) do { if (Option.verbose) { \
+                                FILE* VFP = errout
+#define END_VERBOSE()      } } while (0)
+
 extern void freeList (stringList** const pString);
 extern void setDefaultTagFileName (void);
 extern void checkOptions (void);
@@ -148,6 +159,10 @@ extern void previewFirstOption (cookedArgs* const cargs);
 extern void readOptionConfiguration (void);
 extern void initOptions (void);
 extern void freeOptionResources (void);
+
+extern vString* expandOnCorpusPathList (const char* leaf);
+extern vString* expandOnDriversPathList (const char* leaf);
+/* Return vString must be freed by caller side. */
 
 #endif  /* _OPTIONS_H */
 
