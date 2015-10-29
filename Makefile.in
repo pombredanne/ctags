@@ -1,13 +1,14 @@
-# $Id$
+#	This source code is released for free distribution under the terms
+#	of the GNU General Public License version 2 or (at your option) any
+#	later version.
 #
 # Makefile for UNIX-like platforms.
-#
 
 # These are the names of the installed programs, in case you wish to change
 # them.
 #
-CTAGS_PROG = ctags
-ETAGS_PROG = etags
+CTAGS_PROG = @ctags_name_executable@
+ETAGS_PROG = @etags_name_executable@
 
 # Set this to the path to your shell (must run Bourne shell commands).
 #
@@ -24,23 +25,24 @@ srcdir	= @srcdir@
 libdir	= @libdir@
 incdir	= @includedir@
 mandir	= @mandir@
-datadir = @datarootdir@/@PACKAGE_NAME@
-sysconfdir=@sysconfdir@
-pkgconfdir=@sysconfdir@/@PACKAGE_NAME@
-libexecdir=@libexecdir@
-pkglibexecdir=@libexecdir@/@PACKAGE_NAME@
+datadir = @datadir@
+pkgdatadir = @pkgdatadir@
+sysconfdir = @sysconfdir@
+pkgsysconfdir = @pkgsysconfdir@
+libexecdir = @libexecdir@
+pkglibexecdir = @pkglibexecdir@
 SLINK	= @LN_S@
 STRIP	= @STRIP@
 CC	= @CC@
 DEFS	= @DEFS@
 CPPFLAGS = @CPPFLAGS@
 CFLAGS	= @CFLAGS@
-LDFLAGS	= @LDFLAGS@
+LDFLAGS	= @LDFLAGS@ $(COVERAGE_LDFLAGS)
 LIBOBJS = @LIBOBJS@
 LIBS	= @LIBS@
 EXEEXT	= @EXEEXT@
 OBJEXT	= @OBJEXT@
-
+TINST_ROOT=tinst-root
 # If you cannot run the "configure" script to set the variables above, then
 # uncomment the defines below and customize them for your environment. If
 # your system does not support symbolic (soft) links, then remove the -s
@@ -56,11 +58,20 @@ OBJEXT	= @OBJEXT@
 #CFLAGS	= -O
 #LDFLAGS=
 
-ALL_CFLAGS = $(CFLAGS) -Wall
+EXTRA_CFLAGS = @EXTRA_CFLAGS@
+WARNING_CFLAGS = @WARNING_CFLAGS@
+ifdef COVERAGE
+COVERAGE_CFLAGS = @COVERAGE_CFLAGS@
+COVERAGE_LDFLAGS = @COVERAGE_LDFLAGS@
+endif
+CGCC_CFLAGS = @CGCC_CFLAGS@
+
+ALL_CFLAGS = $(CFLAGS) $(EXTRA_CFLAGS) $(WARNING_CFLAGS) $(COVERAGE_CFLAGS) $(CGCC_CFLAGS)
+
+EXTRA_CPPFLAGS = @EXTRA_CPPFLAGS@
+DEBUG_CPPFLAGS ?= @DEBUG_CPPFLAGS@
 ALL_CPPFLAGS = $(CPPFLAGS)			\
-	-DDATADIR=\"$(datadir)\"		\
-	-DPKGCONFDIR=\"$(pkgconfdir)\"		\
-	-DPKGLIBEXECDIR=\"$(pkglibexecdir)\"
+	$(DEBUG_CPPFLAGS)
 
 include $(srcdir)/source.mak
 
@@ -71,8 +82,8 @@ include $(srcdir)/source.mak
 .SUFFIXES:
 .SUFFIXES: .c .$(OBJEXT)
 
-VPATH	= $(srcdir) $(srcdir)/data/corpora $(srcdir)/data/optlib \
-	$(srcdir)/gnu_regex $(srcdir)/fnmatch
+VPATH	= $(srcdir) \
+	$(srcdir)/data/optlib $(srcdir)/gnu_regex $(srcdir)/fnmatch
 
 INSTALL		= cp -p
 INSTALL_PROG	= $(INSTALL)
@@ -84,7 +95,7 @@ READ_INC = readtags.h
 MANPAGE	= ctags.1
 
 AUTO_GEN   = configure config.h.in
-CONFIG_GEN = config.cache config.log config.status config.run config.h Makefile
+CONFIG_GEN = config.cache config.log config.status config.run config.h ctags.1 Makefile
 
 #
 # names for installed man pages
@@ -95,22 +106,16 @@ CMAN	= $(CTAGS_PROG).$(manext)
 EMAN	= $(ETAGS_PROG).$(manext)
 
 #
-# corpora files
-#
-corporadir = $(datadir)/corpora
-pkgconf_corporadir = $(pkgconfdir)/corpora
-CORPORA    = ctags.ctags RFC1213-MIB.txt
-
-#
 # preload
 #
-preloaddir = $(datadir)/preload
-pkgconf_preloaddir = $(pkgconfdir)/preload
+preloaddir = $(pkgdatadir)/preload
+pkgconf_preloaddir = $(pkgsysconfdir)/preload
 PRELOAD_OPTLIB =				\
 	\
 	coffee.ctags				\
 	ctags.ctags				\
-	mib.ctags				\
+	gdbinit.ctags				\
+	m4.ctags				\
 	\
 	$(NULL)
 DEFAULT_PRELOAD_FILE=default.ctags
@@ -118,8 +123,8 @@ DEFAULT_PRELOAD_FILE=default.ctags
 #
 # config files
 #
-optlibdir = $(datadir)/optlib
-pkgconf_optlibdir = $(pkgconfdir)/optlib
+optlibdir = $(pkgdatadir)/optlib
+pkgconf_optlibdir = $(pkgsysconfdir)/optlib
 OPTLIB    = $(PRELOAD_OPTLIB)
 
 #
@@ -144,25 +149,30 @@ DEST_CMAN	= $(man1dir)/$(CMAN)
 DEST_EMAN	= $(man1dir)/$(EMAN)
 
 #
+# Silent/verbose commands
+#
+# when V is not set the output of commands is ommited or simplified
+#
+V	 ?= 0
+
+SILENT   = $(SILENT_$(V))
+SILENT_0 = @
+SILENT_1 =
+
+V_CC	 = $(V_CC_$(V))
+V_CC_0	 = @echo [CC] $@;
+V_CC_1	 =
+
+#
 # primary rules
 #
 all: $(CTAGS_EXEC) $(READ_LIB) $(READ_CMD)
 
 $(CTAGS_EXEC): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
-
-dctags$(EXEEXT): debug.c $(SOURCES) $(HEADERS)
-	$(CC) -I. -I$(srcdir) $(DEFS) $(ALL_CPPFLAGS) -DDEBUG -g $(LDFLAGS) -o $@ debug.c $(SOURCES)
+	$(V_CC) $(CC) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
 $(READ_CMD): readtags.c readtags.h
-	$(CC) -DREADTAGS_MAIN -I. -I$(srcdir) $(DEFS) $(ALL_CPPFLAGS)  $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(srcdir)/readtags.c
-
-ETYPEREF_OBJS = etyperef.o keyword.o routines.o strlist.o vstring.o
-etyperef$(EXEEXT): $(ETYPEREF_OBJS)
-	$(CC) $(LDFLAGS) -o $@ $(ETYPEREF_OBJS)
-
-etyperef.o: eiffel.c
-	$(CC) -DTYPE_REFERENCE_TOOL -I. -I$(srcdir) $(DEFS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -o $@ -c $(srcdir)/eiffel.c
+	$(V_CC) $(CC) -DREADTAGS_MAIN -I. -I$(srcdir) -I$(srcdir)/main $(DEFS) $(ALL_CPPFLAGS)  $(ALL_CFLAGS) $(LDFLAGS) -o $@ $(srcdir)/readtags.c
 
 $(OBJECTS): $(HEADERS) config.h Makefile
 
@@ -171,7 +181,16 @@ $(OBJECTS): $(HEADERS) config.h Makefile
 # works with GNU make but should be harmless for other implementations.
 %: Makefile
 Makefile: Makefile.in config.status
-	./config.status --file $@
+	$(SILENT) ./config.status --file $@
+
+config.h: config.h.in config.status
+	$(SILENT) ./config.status --header $@
+
+# Regenerate the build system whenever it changed
+config.status: configure
+	$(SILENT) ./config.status --recheck
+configure: configure.ac
+	$(SILENT) cd $(srcdir) && autoreconf -vi
 
 #
 # generic install rules
@@ -184,8 +203,8 @@ install-ctags: install-cbin install-cman
 install-etags: install-ebin install-eman
 
 INSTALLDIRS = $(bindir) $(man1dir) $(libdir) $(incdir) \
-	$(corporadir) $(optlibdir) $(preloaddir) $(driversdir) \
-	$(pkgconf_corporadir) $(pkgconf_optlibdir) $(pkgconf_preloaddir)
+	$(optlibdir) $(preloaddir) $(driversdir) \
+	$(pkgconf_optlibdir) $(pkgconf_preloaddir)
 
 $(addprefix $(DESTDIR),$(INSTALLDIRS)):
 	$(srcdir)/mkinstalldirs $@
@@ -217,7 +236,7 @@ install-cman: $(DEST_CMAN)
 install-eman: $(DEST_EMAN)
 
 $(DEST_CMAN): $(DESTDIR)$(man1dir) $(MANPAGE) FORCE
-	- $(INSTALL_DATA) $(srcdir)/$(MANPAGE) $(DESTDIR)$@  &&  chmod 644 $(DESTDIR)$@
+	- $(INSTALL_DATA) $(MANPAGE) $(DESTDIR)$@  &&  chmod 644 $(DESTDIR)$@
 
 $(DEST_EMAN):
 	- if [ -f $(DESTDIR)$(DEST_CMAN) ]; then \
@@ -243,10 +262,7 @@ $(DEST_READ_CMD): $(READ_CMD) $(DESTDIR)$(bindir) FORCE
 # install data
 #
 install-data: @install_data_targets@
-install-data-corpora: $(addprefix data/corpora/,$(CORPORA)) $(DESTDIR)$(corporadir) $(DESTDIR)$(pkgconf_corporadir) FORCE
-	for c in $(CORPORA); do \
-		$(INSTALL_DATA) $(srcdir)/data/corpora/$$c $(DESTDIR)$(corporadir)/$$c && chmod 644 $(DESTDIR)$(corporadir)/$$c; \
-	done
+
 install-data-optlib: $(addprefix data/optlib/,$(OPTLIB))  $(DESTDIR)$(optlibdir) $(DESTDIR)$(pkgconf_optlibdir) FORCE
 	for c in $(OPTLIB); do \
 		$(INSTALL_DATA) $(srcdir)/data/optlib/$$c $(DESTDIR)$(optlibdir)/$$c && chmod 644 $(DESTDIR)$(optlibdir)/$$c; \
@@ -290,14 +306,10 @@ uninstall-ctags:
 uninstall-etags:
 	- rm -f $(DEST_ETAGS) $(DEST_EMAN)
 
-uninstall-data: uninstall-corpora uninstall-optlib uninstall-preload
-	- rmdir $(datadir)
-	- rmdir $(pkgconfdir)
+uninstall-data: uninstall-optlib uninstall-preload
+	- rmdir $(pkgdatadir)
+	- rmdir $(pkgsysconfdir)
 
-uninstall-corpora:
-	- rm -f $(addprefix $(corporadir)/,$(CORPORA))
-	- rmdir $(corporadir)
-	- rmdir $(pkgconf_corporadir)
 uninstall-optlib:
 	- rm -f $(addprefix $(optlibdir)/,$(OPTLIB))
 	- rmdir $(optlibdir)
@@ -323,10 +335,10 @@ tags: $(CTAGS_EXEC)
 TAGS: $(CTAGS_EXEC)
 	./$(CTAGS_EXEC) -e $(srcdir)/*
 
-clean: clean-units
-	rm -f $(OBJECTS) $(CTAGS_EXEC) tags TAGS $(READ_LIB) 
-	rm -f dctags$(EXEEXT) $(READ_CMD)
-	rm -f etyperef$(EXEEXT) etyperef.$(OBJEXT)
+clean: clean-units clean-gcov clean-tmain
+	$(SILENT) echo Cleaning top level
+	$(SILENT) rm -f $(OBJECTS) $(CTAGS_EXEC) tags TAGS $(READ_LIB)
+	$(SILENT) rm -f $(SOURCES:.c=.gcno)
 
 mostlyclean: clean
 
@@ -335,14 +347,26 @@ distclean: clean
 
 maintainerclean: distclean
 	rm -f $(AUTO_GEN)
+	rm -rf autom4te.cache/
 
 #
 # implicit rules
 #
 .c.$(OBJEXT):
-	$(CC) -I. -I$(srcdir) $(DEFS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -c $<
+	$(SILENT) dir="$$(dirname $@)"; mkdir -p "$$dir"
+	$(V_CC) $(CC) -I. -I$(srcdir) -I$(srcdir)/main $(DEFS) $(ALL_CPPFLAGS) $(ALL_CFLAGS) -o $@ -c $<
 $(addsuffix .$(OBJEXT),$(basename $(notdir $(REGEX_SOURCES)))): ALL_CPPFLAGS += \
-	-D_GNU_SOURCE -D__USE_GNU -Dbool=int -Dfalse=0 -Dtrue=1
+	$(EXTRA_CPPFLAGS)
+
+REV := $(shell git rev-parse --short HEAD 2>/dev/null || echo 0)
+ALL_CPPFLAGS += -DCTAGS_COMMIT_ID=0x$(REV)
+
+options.$(OBJEXT): commit-stamp
+entry.$(OBJEXT): commit-stamp
+
+commit-stamp: FORCE
+	echo "$(REV)" > $@.tmp
+	if diff -q $@ $@.tmp; then rm -f $@.tmp; else mv -f $@.tmp $@; fi
 
 #
 # check
@@ -362,41 +386,138 @@ ifdef TRAVIS
 SHOW_DIFF_OUTPUT=--show-diff-output
 endif
 
-.PHONY: check units fuzz  clean-units
-check: units
+.PHONY: check units fuzz noise tmain tinst clean-units clean-tmain clean-gcov run-gcov codecheck help
+check: tmain units
 
 #
 # FUZZ Target
 #
 # SHELL must be dash or bash.
 #
-fuzz: TIMEOUT := 1
+fuzz: TIMEOUT := $(shell timeout --version > /dev/null 2>&1 && echo 1 || echo 0)
 fuzz: $(CTAGS_TEST)
 	@ \
-	c="misc/units fuzz \
+	c="$(srcdir)/misc/units fuzz \
 		--ctags=$(CTAGS_TEST) \
 		--languages=$(LANGUAGES) \
+		--datadir=$(srcdir)/data \
+		--libexecdir=$(srcdir)/libexec \
 		$(VALGRIND) $(RUN_SHRINK) \
 		--with-timeout=$(TIMEOUT)"; \
-	$(SHELL) $${c} Units
+	$(SHELL) $${c} $(srcdir)/Units
+
+#
+# NOISE Target
+#
+noise: $(CTAGS_TEST)
+	@ \
+	c="$(srcdir)/misc/units noise \
+		--ctags=$(CTAGS_TEST) \
+		--languages=$(LANGUAGES) \
+		--datadir=$(srcdir)/data \
+		--libexecdir=$(srcdir)/libexec \
+		$(VALGRIND) $(RUN_SHRINK) \
+		--with-timeout=$(TIMEOUT)"; \
+	$(SHELL) $${c} $(srcdir)/Units
 
 #
 # UNITS Target
 #
-units: TIMEOUT := 5
+units: TIMEOUT := $(shell timeout --version > /dev/null 2>&1 && echo 5 || echo 0)
 units: $(CTAGS_TEST)
 	@ \
-	c="misc/units run \
+	builddir=$$(pwd); \
+	mkdir -p $${builddir}/Units && \
+	\
+	c="$(srcdir)/misc/units run \
 		--ctags=$(CTAGS_TEST) \
 		--languages=$(LANGUAGES) \
 		--categories=$(CATEGORIES) \
 		--units=$(UNITS) \
+		--datadir=$(srcdir)/data \
+		--libexecdir=$(srcdir)/libexec \
 		$(VALGRIND) $(RUN_SHRINK) \
 		--with-timeout=$(TIMEOUT) \
 		$(SHOW_DIFF_OUTPUT)"; \
-	 $(SHELL) $${c} Units
+	 $(SHELL) $${c} $(srcdir)/Units $${builddir}/Units
 
 clean-units:
-	$(SHELL) misc/units clean Units
+	$(SILENT) echo Cleaning test units
+	$(SILENT) builddir=$$(pwd); \
+		$(SHELL) $(srcdir)/misc/units clean $${builddir}/Units
+
+#
+# Test main part, not parsers
+#
+tmain: $(CTAGS_TEST)
+	@ \
+	\
+	builddir=$$(pwd); \
+	mkdir -p $${builddir}/Tmain && \
+	\
+	c="$(srcdir)/misc/units tmain \
+		--ctags=$(CTAGS_TEST) \
+		--datadir=$(srcdir)/data \
+		--libexecdir=$(srcdir)/libexec \
+		$(VALGRIND) \
+		$(SHOW_DIFF_OUTPUT)"; \
+	 $(SHELL) $${c} $(srcdir)/Tmain $${builddir}/Tmain
+
+clean-tmain:
+	$(SILENT) echo Cleaning main part tests
+	$(SILENT) builddir=$$(pwd); \
+		$(SHELL) $(srcdir)/misc/units clean-tmain $${builddir}/Tmain
+
+#
+# Test installation
+#
+tinst:
+	@ \
+	\
+	builddir=$$(pwd); \
+	rm -rf $$builddir/$(TINST_ROOT); \
+	\
+	$(SHELL) $(srcdir)/misc/tinst $(srcdir) $$builddir/$(TINST_ROOT)
+
+#
+# Checking code in ctags own rules
+#
+codecheck:
+	$(SHELL) misc/src-check
+
+#
+# Report coverage (usable only if ctags is built with COVERAGE=1.)
+#
+run-gcov:
+	$(CTAGS_TEST) -o - $$(find ./Units -name 'input.*'| grep -v '.*b/.*') > /dev/null
+	gcov $$(find -name '*.gcda')
+
+clean-gcov:
+	$(SILENT) echo Cleaning coverage reports
+	$(SILENT) rm -f $(SOURCES:.c=.gcda)
+	$(SILENT) rm -f $(srcdir)/*.gcov
+
+#
+# Help
+#
+help:
+	@echo "Compilation targets:"
+	@echo ""
+	@echo "make                              - Build $(CTAGS_PROG)"
+	@echo "make V=1                          - Build $(CTAGS_PROG) - verbose output"
+	@echo "make -f mk_mingw.mak              - Build $(CTAGS_PROG) using MinGW"
+	@echo "make -f mk_mingw.mak V=1          - Build $(CTAGS_PROG) using MinGW - verbose output"
+	@echo ""
+	@echo "Testing targets:"
+	@echo ""
+	@echo "make units                        - Run parser unit test cases"
+	@echo "make tmain                        - Run ctags main functionality test cases"
+	@echo "make fuzz                         - Verify that all parsers are able to properly process each available test unit"
+	@echo "make noise                        - TODO"
+	@echo
+	@echo "Arguments that can be used in testing targets:"
+	@echo "VG=1                              - Run test cases with Valgrind memory profiler"
+	@echo "LANGUAGES=<language>[,<language>] - Only run test cases of the selected languages"
+	@echo "CATEGORIES=<category>             - Only run tests available under folder Units/<category>.r"
 
 # vi:set tabstop=8:

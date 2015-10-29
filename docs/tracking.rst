@@ -1,19 +1,18 @@
 Tracking other projects
-======================================================================
+----------------------------------------------------------------------
 
 This is working note for tracking activities other projects,
 especially activity at exuberant-ctags.
 
-I put this as the top of this hacking guide because
-I consider tracking activities as the first class fruits
-of this project.
+I(Masatake YAMATO) consider tracking activities as the first class
+fruits of this project.
 
 
 exuberant-ctags
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 subversion
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 
 * status
 
@@ -28,18 +27,18 @@ subversion
   ::
 
       <svn>
-      => <git: local exuberant repo>
-	 => <git: local exuberant repo>
+      => <git: local universal-ctags repo>
+	 => <git: local universal-ctags repo>
 
 
-  1. prepare your own exuberant repo: a local git repo cloned from github.
+  1. prepare your own universal-ctags repo: a local git repo cloned from github.
      You may know how to do it :)
 
      ::
     
-	$ git clone https://github.com/fishman/ctags.git
+	$ git clone https://github.com/universal-ctags/ctags.git
 
-  2. prepare exuberant SVN repo: a local git repo clone from exuberant svn tree.
+  2. prepare exuberant-ctags SVN repo: a local git repo clone from exuberant-ctags svn tree.
 
     The original clone is already part of exuberant tree.
 
@@ -61,14 +60,14 @@ subversion
 
   4. cherry-pick
 
-     4.1. Make a branch at local exuberant repo and switch to it.
+     4.1. Make a branch at local universal-ctags repo and switch to it.
 
      4.2. Do cherry-pick like::
 
 	 	$ git cherry-pick -s -x c81a8ce
 
      You can find commit id on the another terminal
-     <git: local exuberant repo>::
+     <git: local universal-ctags repo>::
 
 	 	$ git log
 	 
@@ -81,13 +80,59 @@ subversion
 
 	 $ git reset --hard
 
-     <git: local exuberant repo>
+     <git: local universal-ctags repo>
       at the branch for picking.
 
 bugs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
+   <367>  C++11 override makes a C++ member function declaration ignored
+
+	 * fixed in::
+
+	        d4fcbdd
+		#413
+		#405
+
+   <366>  --options=.ctags doesn't work under Windows
+
+	 * fixed in::
+
+	        15cedc6c94e95110cc319b5cdad7807caf3db1f4
+
+   <365>  Selecting Python kinds is broken
+
+	* fixed in::
+
+	         4a95e4a55f67230fc4eee91ffb31c18c422df6d3
+
+	* discussed at #324.
+
+   <364>  Ruby method on self is missing the trailing ? in the generated tag name
+
+	 * fixed in::
+
+	        d9ba5df9f4d54ddaa511bd5440a1a3decaa2dc28
+
+   <363> Invalid C input file causes invalid read / heap overflow
+
+	* it is not reproduced.
+
+	* the test case is imported as parser-c.r/c-heapoverflow-sh-bug-363.d::
+
+   		$ make units UNITS=c-heapoverflow-sh-bug-363 VG=1
+
+   <361> Invalid C input file causes invalid read / heap overflow
+
+	* it is not reproduced.
+
+   <360> Fails to parse annotation's fields with default value
+
+	* fixed in::
+
+		682a7f3b180c27c1196f8a1ae662d6e8ad142939
 
    <358>  Vim parser: Segmentation fault when reading empty vim file
+
 	 * directly contributed by the original author of bug report and patch::
 
 	   	e0f854f0100e7a3cb8b959a23d6036e43f6b6c85
@@ -96,21 +141,41 @@ bugs
 
 	   	5d774f6022a1af71fa5866994699aafce0253085
 
+   <356> [python] mistakes module level attribute for class level attribute in module level if
+
+	 * fixed in::
+
+	        ab91e6e1ae84b80870a1e8712fc7f3133e4b5542
+
    <355> Error when parsing empty file (OCaml)
-	 * fixed::
+
+	 * fixed in::
 
 	   	02ec2066b5be6b129eba49685bd0b17fef4acfa
 
+   <341> Lua: "function f ()" whitespace
+
+	 * fixed in::
+
+	   	8590bbef5fcf70f6747d509808c29bf84342cd0d
+
    <341> Introducing ctags.conf.d
+
 	 * merged the improved version::
 
 	   	216880c5287e0421d9c49898d983144db61c83aa
 
    <271> regex callback is broken; <320> [PATCH] fix regex callback match count
+
 	 * merged patch (with updated bug number)::
 
-		a12b3a24b62d6535a968e076675f68bac9ad32ba 
+		a12b3a24b62d6535a968e076675f68bac9ad32ba
 
+   <177> Lua: "function" results in function tag (includes patch)
+
+	 * fixed in::
+
+	   	5606f3f711afeac74587a249650a5f7b416f19be
 
 `patches <https://sourceforge.net/p/ctags/patches/%d>`_
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,6 +200,12 @@ Patches are always there. So it is easy to evaluate the value:)
 	tree developers.  We don't have to take time for this ticket.
 
 ----
+
+   <85> Add --encoding option to make utf-8 encoded tags file
+
+	* contributed by the original author::
+
+	      b3f670c7c4a3c3570b8d2d82756735586aafc0cb
 
    <84> C++11 new using semantics
 
@@ -163,29 +234,29 @@ Patches are always there. So it is easy to evaluate the value:)
 
    <67> Objective C language parser
 
-	* This is the implementation is we have in exuberant tree.
+	* This is the implementation we have in universal-ctags tree.
 
    <65> absoluteFilename uses strcpy on overlapping strings
 
-	* Fixed in exuberant tree, however the ticket is still open::
+	* Fixed in universal-ctags tree, however the ticket is still open::
 
    		d2bdf505abb7569deae2b50305ea1edce6208557
 
    <64> Fix strcpy() misuse
 
-	* Fixed in exuberant tree, however the ticket is still open::
+	* Fixed in universal-ctags tree, however the ticket is still open::
 
 		d2bdf505abb7569deae2b50305ea1edce6208557
 
    <51> Ada support
 
-	* Ada support is now available in exuberant tree::
+	* Ada support is now available in universal-ctags tree::
 
 		4b6b4a72f3d2d4ef969d7c650de1829d79f0ea7c
 
    <38> Ada support
 
-	* Ada support is now available in exuberant tree::
+	* Ada support is now available in universal-ctags tree::
 
 		4b6b4a72f3d2d4ef969d7c650de1829d79f0ea7c
 
@@ -248,7 +319,7 @@ devel mailing list (ctags-devel@sourceforge)
 
 
 Fedora
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some patches are maintained in ctags package of Fedora.
 Inventory of patches are
@@ -256,57 +327,57 @@ http://pkgs.fedoraproject.org/cgit/ctags.git/tree/ctags.spec
 
 <ctags-5.7-destdir.patch>
 
-	This patch was merged in exuberant ctags git tree::
+	This patch was merged in universal-ctags git tree::
 
 		d4b5972427a46cbdcbfb050a944cf62b300676be
 
 <ctags-5.7-segment-fault.patch>
 
-	This patch was merged in exuberant ctags git tree::
+	This patch was merged in universal-ctags git tree::
 
 		8cc2b482f6c7257c5151893a6d02b8c79851fedd
 
 (ctags-5.8-cssparse.patch)
 
-	Not in exuberant tree.
+	Not in universal-ctags tree.
 
 	The reproducer is attached to following page:
 	https://bugzilla.redhat.com/show_bug.cgi?id=852101
 
-	However, exuberant-ctags doesn't reproduce with it.
+	However, universal-ctags doesn't reproduce with it.
 
 	I, Masatake YAMATO, read the patch.  However, I don't
 	understand the patch.  
 
 <ctags-5.8-css.patch>
 
-	This patch was merged in exuberant ctags git tree::
+	This patch was merged in universal-ctags git tree::
 
 		80c1522a36df3ba52b8b7cd7f5c79d5c30437a63
 
 <ctags-5.8-memmove.patch>
 
 	This patch was merged in exuberant ctags svn tree.
-	As the result this patch is in exuberant tree::
+	As the result this patch is in universal-ctags tree::
 
 		d2bdf505abb7569deae2b50305ea1edce6208557
 
 <ctags-5.8-ocaml-crash.patch>
 
 	This patch was merged in exuberant ctags svn tree.
-	As the result this patch is in exuberant tree::
+	As the result this patch is in universal-ctags tree::
 
 		ddb29762b37d60a875252dcc401de0b7479527b1
 
 <ctags-5.8-format-security.patch>
 
 	This patch was merged in exuberant ctags svn tree.
-	As the result this patch is in exuberant tree::
+	As the result this patch is in universal-ctags tree::
 
 		2f7a78ce21e4156ec3e63c821827cf1d5680ace8
 
 Debian
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some patches are maintained in ctags package of Debian.
 Inventory of patches are
@@ -314,7 +385,7 @@ http://anonscm.debian.org/cgit/users/cjwatson/exuberant-ctags.git/tree/debian/pa
 
 (python-disable-imports.patch)
 
-	Not in exuberant tree.
+	Not in universal-ctags tree.
 	
 	I don't want to merge this patch. I think ctags should extract
 	as much as possible information from input source code.
@@ -334,70 +405,24 @@ http://anonscm.debian.org/cgit/users/cjwatson/exuberant-ctags.git/tree/debian/pa
 
 
 Other interesting ctags repositories
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are several interesting repo's with ctags around. These are
 interesting to integrate in the future.
 
-
-Geany
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Repo
-
-	https://github.com/geany/geany/tree/master/tagmanager/ctags
-
-Geany has created a library out of ctags
-
-  	https://github.com/fishman/ctags/issues/63
-
-Their language parsers have many improvements to various parsers.
-Changes known by devs worth backporting:
-
-* HTML reads <h1><h2><h3> tags
-* Make has support for targets
-* Various fixes for D parser (c.c), but currently the code diverges
-  from ours to some extent.
-
-
-They have these additional language parsers:
-
-* `Abaqus <http://en.wikipedia.org/wiki/Abaqus>`_
-* `ActionScript <http://en.wikipedia.org/wiki/ActionScript>`_
-* `AsciiDoc <http://en.wikipedia.org/wiki/AsciiDoc>`_
-* `DocBook <http://en.wikipedia.org/wiki/DocBook>`_
-* `Ferite (c.c) <http://en.wikipedia.org/wiki/Ferite>`_
-* `GLSL (c.c) <http://en.wikipedia.org/wiki/OpenGL_Shading_Language>`_
-* `Haskell <http://en.wikipedia.org/wiki/Haskell_%28programming_language%29>`_
-* `Haxe <http://en.wikipedia.org/wiki/Haxe>`_
-* `NSIS <http://en.wikipedia.org/wiki/Nullsoft_Scriptable_Install_System>`_
-* `R <http://en.wikipedia.org/wiki/R_%28programming_language%29>`_
-* `Rust <http://rust-lang.org>`_
-* `reStructuredText (reST) <http://en.wikipedia.org/wiki/ReStructuredText>`_
-* `txt2tags <http://en.wikipedia.org/wiki/Txt2tags>`_ 
-* `Vala (c.c) <http://en.wikipedia.org/wiki/Vala_%28programming_language%29>`_
-
-
-These changes have been merged:
-
-* Fix regex callback match count - https://github.com/fishman/ctags/pull/104 
-* SQL tags are stored with scopes instead of "tablename.field" - https://github.com/fishman/ctags/pull/100
-* Some fixes for D parser
-
-
 `VIM-Japan <https://github.com/vim-jp/ctags/>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 
-VIM-Japan have some interesting things, especially regarding encoding
+VIM-Japan have some interesting things, especially regarding encoding.
 
 `Anjuta <https://git.gnome.org/browse/anjuta/tree/plugins/symbol-db/anjuta-tags>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.......................................................................................
 
 Anjuta is a Gnome IDE. They did not fork Exuberant ctags, but they did
 natively include it in Anjuta. They have made several additions to
 their version of it including fairly extensive Vala language support.
 
 tagbar
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.......................................................................
 
 Wiki
 
@@ -407,14 +432,14 @@ This is a gold mine of xcmd and optlib.
 
 	
 External command(xcmd)
-----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Near feature exuberant-ctags can invoke external command as a
+Near feature universal-ctags can invoke external command as a
 specialized parser though some glue code or script may be
 needed. Sometimes we may have to hack the external command to adjust
-the interface between the command and exuberant-ctags.
+the interface between the command and universal-ctags.
 
-So let's track external commands maintained out exuberant-ctags. If we
+So let's track external commands maintained out universal-ctags. If we
 prepare glue code or script, mark it with <>, and if not, mark it with
 ().
 

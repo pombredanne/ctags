@@ -1,2 +1,0 @@
-isContextualKeyword	input.c	/^static boolean isContextualKeyword (const tokenInfo *const token)$/;"	f	file:
-main	input.c	/^main ()$/;"	f

@@ -13,206 +13,308 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="Source Files\Parsers">
+      <UniqueIdentifier>{f77929ed-5bdf-496f-9ea6-c3c6180e6ca5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Main">
+      <UniqueIdentifier>{45974afc-d1c3-4696-a74a-60eeaa6e1441}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ant.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\ada.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\args.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\ant.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\asm.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\asm.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\asp.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\asp.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\awk.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\awk.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\basic.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\basic.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\beta.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\beta.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\c.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\c.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\cobol.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\clojure.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\debug.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\cobol.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\dosbatch.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\css.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\eiffel.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\diff.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\entry.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\dosbatch.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\erlang.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\dts.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\flex.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\eiffel.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\fortran.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\erlang.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\get.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\falcon.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\html.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\flex.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\jscript.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\fortran.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\keyword.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\go.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\lisp.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\html.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\lregex.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\jscript.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\lxcmd.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\json.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\lua.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\lisp.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\main.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\lua.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\make.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\make.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\matlab.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\matlab.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\objc.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\objc.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\ocaml.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\ocaml.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\options.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\pascal.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\parse.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\perl.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\pascal.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\python.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\perl.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\r.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\php.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\rexx.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\python.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\ruby.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\read.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\rust.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\gnu_regex\regex.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\scheme.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\rexx.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\sh.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\routines.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\slang.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\ruby.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\sml.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\rust.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\sql.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\scheme.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\tcl.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\sh.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\tex.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\slang.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\verilog.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\sml.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\vhdl.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\sort.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\vim.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\sql.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\windres.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\strlist.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\yacc.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\tcl.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\parsers\php.c">
+      <Filter>Source Files\Parsers</Filter>
     </ClCompile>
-    <ClCompile Include="..\tex.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\args.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\verilog.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\debug.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\vhdl.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\entry.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\vim.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\field.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\vstring.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\windres.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\yacc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\tg.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\flags.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
     <ClCompile Include="..\fnmatch\fnmatch.c">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\ada.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\get.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\css.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\htable.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\falcon.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\keyword.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\go.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\lregex.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\trashbox.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\lxcmd.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\flags.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\main.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
-    <ClCompile Include="..\json.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\main\options.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\parse.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\read.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\gnu_regex\regex.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\routines.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\sort.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\strlist.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\vstring.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\parsers\rst.c">
+      <Filter>Source Files\Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\nestlevel.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\parsers\perl6.c">
+      <Filter>Source Files\Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\selectors.c">
+      <Filter>Source Files\Main</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\e_msoft.h">
+    <ClInclude Include="..\main\e_msoft.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\args.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\entry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\field.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\flags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\get.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\htable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\keyword.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\kind.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\main.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\options.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\parse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\parsers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\read.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\sort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\strlist.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\vstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\gnu_regex\regex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\fnmatch\fnmatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\general.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\routines.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\ctags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\debug.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\nestlevel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\selectors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

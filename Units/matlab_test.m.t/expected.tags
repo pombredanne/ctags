@@ -1,3 +1,0 @@
-func1	input.m	/^function [x,y,z] = func1 $/;"	f
-func2	input.m	/^function x = func2 $/;"	f
-func3	input.m	/^function func3 $/;"	f

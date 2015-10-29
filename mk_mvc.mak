@@ -1,23 +1,28 @@
-# $Id$
 #
-# Makefile for Win32 using Microsoft Visual C++ compiler
+# Makefile for Win32 using Microsoft Visual Studio 2013
+#
 # To use from the command line:
-# 1. Make sure C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\ is in the PATH
-# 2. Make sure C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\
-# 3. Execute: C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\vcvarsall.bat
-# 4. Execute: nmake -f mk_mvc.mak
+# 1. From the Start Menu "Visual Studio 2013" -> "Visual Studio Tools" -> "VS2013 x86 Native Tools Command Prompt"
+# 2. In the command prompt that opens goto the directory containing the sources
+# 3. Execute: nmake -f mk_mvc.mak
+#
 
 include source.mak
 
 REGEX_DEFINES = -DHAVE_REGCOMP -D__USE_GNU -Dbool=int -Dfalse=0 -Dtrue=1 -Dstrcasecmp=stricmp
 DEFINES = -DWIN32 $(REGEX_DEFINES)
-INCLUDES = -I. -Ignu_regex -Ifnmatch
+INCLUDES = -I. -Imain -Ignu_regex -Ifnmatch
 OPT = /O2
+!if "$(WITH_ICONV)" == "yes"
+DEFINES = $(DEFINES) -DHAVE_ICONV
+LIBS = $(LIBS) /libpath:$(ICONV_DIR)/lib iconv.lib
+INCLUDES = $(INCLUDES) -I$(ICONV_DIR)/include
+!endif
 
 ctags: ctags.exe
 
 ctags.exe: respmvc
-	cl $(OPT) /Fe$@ @respmvc /link setargv.obj
+	cl $(OPT) /Fe$@ @respmvc /link setargv.obj $(LIBS)
 
 readtags.exe: readtags.c
 	cl /clr $(OPT) /Fe$@ $(DEFINES) -DREADTAGS_MAIN readtags.c /link setargv.obj
