@@ -19,6 +19,7 @@
 #include "entry.h"
 #include "options.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 /*
@@ -140,7 +141,7 @@ static void writeCurTokenToStr (lexerState *lexer, vString *out_str)
 static void advanceChar (lexerState *lexer)
 {
 	lexer->cur_c = lexer->next_c;
-	lexer->next_c = fileGetc();
+	lexer->next_c = getcFromInputFile();
 }
 
 /* Reads N characters from the file */
@@ -345,7 +346,7 @@ static void scanCharacterOrLifetime (lexerState *lexer)
 static int advanceToken (lexerState *lexer, boolean skip_whitspace)
 {
 	boolean have_whitespace = FALSE;
-	lexer->line = getSourceLineNumber();
+	lexer->line = getInputLineNumber();
 	lexer->pos = getInputFilePosition();
 	while (lexer->cur_c != EOF)
 	{
@@ -366,7 +367,7 @@ static int advanceToken (lexerState *lexer, boolean skip_whitspace)
 			break;
 		}
 	}
-	lexer->line = getSourceLineNumber();
+	lexer->line = getInputLineNumber();
 	lexer->pos = getInputFilePosition();
 	while (lexer->cur_c != EOF)
 	{
@@ -442,7 +443,6 @@ static void addTag (vString* ident, const char* arg_list, int kind, unsigned lon
 
 	tag.lineNumber = line;
 	tag.filePosition = pos;
-	tag.sourceFileName = getSourceFileName();
 
 	tag.extensionFields.signature = arg_list;
 	/*tag.extensionFields.varType = type;*/ /* FIXME: map to typeRef[1]? */
@@ -974,7 +974,7 @@ extern parserDefinition *RustParser (void)
 	static const char *const extensions[] = { "rs", NULL };
 	parserDefinition *def = parserNewFull ("Rust", KIND_FILE_ALT);
 	def->kinds = rustKinds;
-	def->kindCount = COUNT_ARRAY (rustKinds);
+	def->kindCount = ARRAY_SIZE (rustKinds);
 	def->extensions = extensions;
 	def->parser = findRustTags;
 

@@ -233,7 +233,7 @@ static boolean createTagsForEntry (const char *const entryName)
 	else if (status->isSymbolicLink  &&  ! Option.followLinks)
 		verbose ("ignoring \"%s\" (symbolic link)\n", entryName);
 	else if (! status->exists)
-		error (WARNING | PERROR, "cannot open source file \"%s\"", entryName);
+		error (WARNING | PERROR, "cannot open input file \"%s\"", entryName);
 	else if (status->isDirectory)
 		resize = recurseIntoDirectory (entryName);
 	else if (! status->isNormalFile)
@@ -457,6 +457,22 @@ static void makeTags (cookedArgs *args)
 #undef timeStamp
 }
 
+static boolean isSafeVar (const char* var)
+{
+	char *safe_vars[] = {
+		"BASH_FUNC_module()=",
+		"BASH_FUNC_scl()=",
+		NULL
+	};
+	char *sv;
+
+	for (sv = safe_vars[0]; sv != NULL; sv++)
+		if (strncmp(var, sv, strlen (sv)) == 0)
+			return TRUE;
+
+	return FALSE;
+}
+
 static void sanitizeEnviron (void)
 {
 	char **e = NULL;
@@ -486,6 +502,8 @@ static void sanitizeEnviron (void)
 		value++;
 		if (!strncmp (value, "() {", 4))
 		{
+			if (isSafeVar (e [i]))
+				continue;
 			error (WARNING, "reset environment: %s", e [i]);
 			value [0] = '\0';
 		}
@@ -522,7 +540,7 @@ extern int main (int __unused__ argc, char **argv)
 	cArgDelete (args);
 	freeKeywordTable ();
 	freeRoutineResources ();
-	freeSourceFileResources ();
+	freeInputFileResources ();
 	freeTagFileResources ();
 	freeOptionResources ();
 	freeParserResources ();

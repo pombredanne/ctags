@@ -6,11 +6,11 @@
 *
 *   External interface to all language parsing modules.
 *
-*   To add a new language parser, you need only modify this single source
+*   To add a new language parser, you need only modify this single input
 *   file to add the name of the parser definition function.
 */
-#ifndef _PARSERS_H
-#define _PARSERS_H
+#ifndef CTAGS_MAIN_PARSERS_H
+#define CTAGS_MAIN_PARSERS_H
 
 /* Add the name of any new parser definition function here */
 #define PARSER_LIST \
@@ -22,10 +22,12 @@
 	BasicParser, \
 	BetaParser, \
 	ClojureParser, \
+	CoffeeScriptParser, \
 	CParser, \
 	CppParser, \
 	CssParser, \
 	CsharpParser, \
+	CtagsParser, \
 	CobolParser, \
 	DParser, \
 	DiffParser, \
@@ -36,6 +38,7 @@
 	FalconParser, \
 	FlexParser, \
 	FortranParser, \
+	GdbinitParser, \
 	GoParser, \
 	HtmlParser, \
 	JavaParser, \
@@ -43,6 +46,7 @@
 	JsonParser, \
 	LispParser, \
 	LuaParser, \
+	M4Parser, \
 	MakefileParser, \
 	MatLabParser, \
 	ObjcParser, \
@@ -71,10 +75,8 @@
 	VimParser, \
 	WindResParser, \
 	YaccParser, \
-	ZephirParser, \
-	  \
-	CTagsSelfTestParser
+	ZephirParser
 
-#endif  /* _PARSERS_H */
+#endif  /* CTAGS_MAIN_PARSERS_H */
 
 /* vi:set tabstop=4 shiftwidth=4: */

@@ -42,6 +42,9 @@
     <ClCompile Include="..\parsers\beta.c">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
+    <ClCompile Include="..\optlib\CoffeeScript.c">
+      <Filter>Source Files\Optlib</Filter>
+    </ClCompile>
     <ClCompile Include="..\parsers\c.c">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
@@ -53,6 +56,9 @@
     </ClCompile>
     <ClCompile Include="..\parsers\css.c">
       <Filter>Source Files\Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\optlib\ctags-optlib.c">
+      <Filter>Source Files\Optlib</Filter>
     </ClCompile>
     <ClCompile Include="..\parsers\diff.c">
       <Filter>Source Files\Parsers</Filter>
@@ -78,6 +84,9 @@
     <ClCompile Include="..\parsers\fortran.c">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
+    <ClCompile Include="..\optlib\gdbinit.c">
+      <Filter>Source Files\Optlib</Filter>
+    </ClCompile>
     <ClCompile Include="..\parsers\go.c">
       <Filter>Source Files\Parsers</Filter>
     </ClCompile>
@@ -95,6 +104,9 @@
     </ClCompile>
     <ClCompile Include="..\parsers\lua.c">
       <Filter>Source Files\Parsers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\optlib\m4.c">
+      <Filter>Source Files\Optlib</Filter>
     </ClCompile>
     <ClCompile Include="..\parsers\make.c">
       <Filter>Source Files\Parsers</Filter>
@@ -183,6 +195,9 @@
     <ClCompile Include="..\main\flags.c">
       <Filter>Source Files\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\main\fmt.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
     <ClCompile Include="..\fnmatch\fnmatch.c">
       <Filter>Source Files\Main</Filter>
     </ClCompile>
@@ -195,6 +210,10 @@
     <ClCompile Include="..\main\keyword.c">
       <Filter>Source Files\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\main\kind.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\lregex.c">
     <ClCompile Include="..\main\lregex.c">
       <Filter>Source Files\Main</Filter>
     </ClCompile>
@@ -240,6 +259,12 @@
     <ClCompile Include="..\main\selectors.c">
       <Filter>Source Files\Main</Filter>
     </ClCompile>
+    <ClCompile Include="..\main\xtag.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main\repoinfo.c">
+      <Filter>Source Files\Main</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\main\e_msoft.h">
@@ -255,6 +280,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\main\flags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\main\fmt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\main\get.h">
@@ -315,6 +343,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\main\selectors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+   <ClInclude Include="..\main\xtag.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

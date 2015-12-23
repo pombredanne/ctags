@@ -6,8 +6,8 @@
 *
 *   Provides the general (non-ctags-specific) environment assumed by all.
 */
-#ifndef _GENERAL_H
-#define _GENERAL_H
+#ifndef CTAGS_MAIN_GENERAL_H
+#define CTAGS_MAIN_GENERAL_H
 
 /*
 *   INCLUDE FILES
@@ -30,11 +30,6 @@
  */
 #ifndef errout
 # define errout	stderr
-#endif
-
-/* Define regex if supported */
-#if (defined (HAVE_REGCOMP) && !defined (REGCOMP_BROKEN))
-# define HAVE_REGEX 1
 #endif
 
 /*  Prevent warnings about unused variables in GCC. */
@@ -109,6 +104,6 @@ extern void *unlink (const char *);
 extern char *getenv (const char *);
 #endif
 
-#endif  /* _GENERAL_H */
+#endif  /* CTAGS_MAIN_GENERAL_H */
 
 /* vi:set tabstop=4 shiftwidth=4: */

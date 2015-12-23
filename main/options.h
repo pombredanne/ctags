@@ -6,8 +6,8 @@
 *
 *   Defines external interface to option processing.
 */
-#ifndef _OPTIONS_H
-#define _OPTIONS_H
+#ifndef CTAGS_MAIN_OPTIONS_H
+#define CTAGS_MAIN_OPTIONS_H
 
 #if defined(OPTION_WRITE)
 # define CONST_OPTION
@@ -24,6 +24,7 @@
 
 #include "args.h"
 #include "field.h"
+#include "fmt.h"
 #include "parse.h"
 #include "strlist.h"
 #include "vstring.h"
@@ -58,18 +59,9 @@ typedef enum sortType {
 	SO_FOLDSORTED
 } sortType;
 
-struct sInclude {
-	boolean fileNames;      /* include tags for source file names */
-	boolean qualifiedTags;  /* include tags for qualified class members */
-	boolean fileScope;      /* include tags of file scope only */
-	boolean fileNamesWithTotalLines; /* `fileNames' with
-					    total lines of the files */
-};
-
 /*  This stores the command line options.
  */
 typedef struct sOptionValues {
-	struct sInclude include;/* --extra  extra tag inclusion */
 	stringList* ignore;     /* -I  name of file containing tokens to ignore */
 	boolean append;         /* -a  append to "tags" file */
 	boolean backward;       /* -B  regexp patterns search backwards */
@@ -79,6 +71,7 @@ typedef struct sOptionValues {
 	sortType sorted;        /* -u,--sort  sort tags */
 	boolean verbose;        /* -V  verbose */
 	boolean xref;           /* -x  generate xref output instead */
+	fmtElement *customXfmt;	/* compiled code for --xformat=XFMT */
 	char *fileList;         /* -L  name of file containing names of files */
 	char *tagFileName;      /* -o  name of tags file */
 	stringList* headerExt;  /* -h  header extensions */
@@ -90,7 +83,6 @@ typedef struct sOptionValues {
 	char *outputEncoding;	/* --output-encoding	write tags file as this encoding */
 #endif
 	boolean if0;            /* --if0  examine code within "#if 0" branch */
-	boolean undef;          /* --undef  generate a tag from #undef'd macros  */
 	langType language;      /* --lang specified language override */
 	boolean followLinks;    /* --link  follow symbolic links? */
 	boolean filter;         /* --filter  behave as filter: files in, tags out */
@@ -104,9 +96,10 @@ typedef struct sOptionValues {
 	boolean allowXcmdInHomeDir;     /* --_allow-xcmd-in-homedir */
 	boolean fatalWarnings;	/* --_fatal-warnings */
 	unsigned int patternLengthLimit; /* Not implemented yet: --patern-length-limit=N */
+	boolean putFieldPrefix;		 /* --put-field-prefix */
 #ifdef DEBUG
 	long debugLevel;        /* -D  debugging output */
-	unsigned long breakLine;/* -b  source line at which to call lineBreak() */
+	unsigned long breakLine;/* -b  input line at which to call lineBreak() */
 #endif
 } optionValues;
 
@@ -183,6 +176,6 @@ extern boolean processLanguageEncodingOption (const char *const option, const ch
 extern boolean processRegexOption (const char *const option, const char *const parameter);
 extern boolean processXcmdOption (const char *const option, const char *const parameter, OptionLoadingStage stage);
 
-#endif  /* _OPTIONS_H */
+#endif  /* CTAGS_MAIN_OPTIONS_H */
 
 /* vi:set tabstop=4 shiftwidth=4: */

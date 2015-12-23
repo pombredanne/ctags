@@ -9,8 +9,8 @@
  *   GNU General Public License version 2 or (at your option) any later version.
  *
  */
-#ifndef _FIELD_H
-#define _FIELD_H
+#ifndef CTAGS_MAIN_FIELD_H
+#define CTAGS_MAIN_FIELD_H
 
 #include "general.h"
 #include "entry.h"
@@ -20,8 +20,9 @@ typedef enum eFieldType { /* extension field content control */
 
 	/* BASIC FIELDS */
 	FIELD_NAME,
-	FIELD_SOURCE_FILE,
+	FIELD_INPUT_FILE,
 	FIELD_PATTERN,
+	FIELD_COMPACT_INPUT_LINE,
 
 	/* EXTENSION FIELDS */
 	FIELD_ACCESS,
@@ -32,6 +33,8 @@ typedef enum eFieldType { /* extension field content control */
 	FIELD_LANGUAGE,
 	FIELD_IMPLEMENTATION,
 	FIELD_LINE_NUMBER,
+	FIELD_ROLE,
+	FIELD_REF_MARK,
 	FIELD_SIGNATURE,
 	FIELD_SCOPE,
 	FIELD_TYPE_REF,
@@ -50,11 +53,13 @@ typedef struct sFieldDesc {
 	const char* description;  /* displayed in --help output */
 	renderEscaped renderEscaped;
 	vString *buffer;
+	const char* nameWithPrefix;
 } fieldDesc;
 
 extern fieldDesc* getFieldDesc(fieldType type);
 extern fieldType getFieldTypeForOption (char letter);
 extern const char* renderFieldEscaped (fieldDesc *fdesc, const tagEntryInfo *tag);
+extern const char* getFieldName(fieldType type);
 extern void printFields (void);
 
-#endif	/* _FIELD_H */
+#endif	/* CTAGS_MAIN_FIELD_H */

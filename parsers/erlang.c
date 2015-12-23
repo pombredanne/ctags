@@ -158,7 +158,7 @@ static void findErlangTags (void)
 	vString *const module = vStringNew ();
 	const unsigned char *line;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		const unsigned char *cp = line;
 
@@ -183,7 +183,7 @@ extern parserDefinition *ErlangParser (void)
 	static const char *const extensions[] = { "erl", "ERL", "hrl", "HRL", NULL };
 	parserDefinition *def = parserNew ("Erlang");
 	def->kinds = ErlangKinds;
-	def->kindCount = COUNT_ARRAY (ErlangKinds);
+	def->kindCount = ARRAY_SIZE (ErlangKinds);
 	def->extensions = extensions;
 	def->parser = findErlangTags;
 	return def;

@@ -18,6 +18,7 @@
 #include "entry.h"
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 /*
@@ -98,14 +99,14 @@ static void findPascalTags (void)
 		 * real tag
 		 */
 
-	dbp = fileReadLine ();
+	dbp = readLineFromInputFile ();
 	while (dbp != NULL)
 	{
 		int c = *dbp++;
 
 		if (c == '\0')  /* if end of line */
 		{
-			dbp = fileReadLine ();
+			dbp = readLineFromInputFile ();
 			if (dbp == NULL  ||  *dbp == '\0')
 				continue;
 			if (!((found_tag && verify_tag) || get_tagname))
@@ -254,7 +255,7 @@ extern parserDefinition* PascalParser (void)
 	parserDefinition* def = parserNew ("Pascal");
 	def->extensions = extensions;
 	def->kinds      = PascalKinds;
-	def->kindCount  = COUNT_ARRAY (PascalKinds);
+	def->kindCount  = ARRAY_SIZE (PascalKinds);
 	def->parser     = findPascalTags;
 	return def;
 }

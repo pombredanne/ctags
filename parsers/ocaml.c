@@ -283,7 +283,7 @@ static void eatComment (lexingState * st)
 		 * so we have to reload a line... */
 		if (c == NULL || *c == '\0')
 		{
-			st->cp = fileReadLine ();
+			st->cp = readLineFromInputFile ();
 			/* WOOPS... no more input...
 			 * we return, next lexing read
 			 * will be null and ok */
@@ -402,7 +402,7 @@ static ocamlKeyword lex (lexingState * st)
 	/* handling data input here */
 	while (st->cp == NULL || st->cp[0] == '\0')
 	{
-		st->cp = fileReadLine ();
+		st->cp = readLineFromInputFile ();
 		if (st->cp == NULL)
 			return Tok_EOF;
 	}
@@ -1801,7 +1801,7 @@ static void computeModuleName ( void )
 	/* in Ocaml the file name define a module.
 	 * so we define a module =)
 	 */
-	const char *filename = getSourceFileName ();
+	const char *filename = getInputFileName ();
 	int beginIndex = 0;
 	int endIndex = strlen (filename) - 1;
 	vString *moduleName = vStringNew ();
@@ -1863,7 +1863,7 @@ static void findOcamlTags (void)
 	vStringCopyS (voidName, "_");
 
 	st.name = vStringNew ();
-	st.cp = fileReadLine ();
+	st.cp = readLineFromInputFile ();
 	toDoNext = &globalScope;
 	tok = lex (&st);
 	while (tok != Tok_EOF)
@@ -1896,12 +1896,12 @@ extern parserDefinition *OcamlParser (void)
 					       NULL };
 	parserDefinition *def = parserNew ("OCaml");
 	def->kinds = OcamlKinds;
-	def->kindCount = COUNT_ARRAY (OcamlKinds);
+	def->kindCount = ARRAY_SIZE (OcamlKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser = findOcamlTags;
 	def->initialize = ocamlInitialize;
 	def->keywordTable = OcamlKeywordTable;
-	def->keywordCount = COUNT_ARRAY (OcamlKeywordTable);
+	def->keywordCount = ARRAY_SIZE (OcamlKeywordTable);
 	return def;
 }

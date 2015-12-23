@@ -24,6 +24,7 @@
 
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 #if 0
@@ -198,7 +199,7 @@ static const unsigned char * readVimLine (void)
 {
 	const unsigned char *line;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		while (isspace ((int) *line))
 			++line;
@@ -216,7 +217,7 @@ static const unsigned char * readVimballLine (void)
 {
 	const unsigned char *line;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		break;
 	}
@@ -711,7 +712,7 @@ extern parserDefinition* VimParser (void)
 		"[._]gvimrc", NULL };
 	parserDefinition* def = parserNew ("Vim");
 	def->kinds		= VimKinds;
-	def->kindCount	= COUNT_ARRAY (VimKinds);
+	def->kindCount	= ARRAY_SIZE (VimKinds);
 	def->extensions = extensions;
 	def->patterns   = patterns;
 	def->parser		= findVimTags;

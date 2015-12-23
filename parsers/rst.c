@@ -21,6 +21,7 @@
 #include "vstring.h"
 #include "nestlevel.h"
 #include "entry.h"
+#include "routines.h"
 
 /*
 *   DATA DEFINITIONS
@@ -163,7 +164,7 @@ static void findRstTags (void)
 	memset(kindchars, 0, sizeof kindchars);
 	nestingLevels = nestingLevelsNew();
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		int line_len = strlen((const char*) line);
 		int name_len_bytes = vStringLength(name);
@@ -204,7 +205,7 @@ extern parserDefinition* RstParser (void)
 	parserDefinition* const def = parserNew ("reStructuredText");
 
 	def->kinds = RstKinds;
-	def->kindCount = COUNT_ARRAY (RstKinds);
+	def->kindCount = ARRAY_SIZE (RstKinds);
 	def->extensions = extensions;
 	def->parser = findRstTags;
 	return def;

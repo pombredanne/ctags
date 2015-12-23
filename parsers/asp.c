@@ -17,6 +17,7 @@
 
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 /*
@@ -43,7 +44,7 @@ static void findAspTags (void)
 	vString *name = vStringNew ();
 	const unsigned char *line;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		const unsigned char *cp = line;
 
@@ -316,7 +317,7 @@ extern parserDefinition* AspParser (void)
 	static const char *const extensions [] = { "asp", "asa", NULL };
 	parserDefinition* def = parserNew ("Asp");
 	def->kinds      = AspKinds;
-	def->kindCount  = COUNT_ARRAY (AspKinds);
+	def->kindCount  = ARRAY_SIZE (AspKinds);
 	def->extensions = extensions;
 	def->parser     = findAspTags;
 	return def;

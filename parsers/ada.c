@@ -98,11 +98,12 @@
 #include <setjmp.h>
 
 #include "parse.h"      /* always include */
-#include "read.h"       /* to define file fileReadLine() */
+#include "read.h"       /* to define file readLineFromInputFile() */
 #include "entry.h"      /* for the tag entry manipulation */
 #include "routines.h"   /* for generic malloc/realloc/free routines */
 #include "options.h"    /* for the Option structure */
 #include "debug.h"      /* for Assert */
+#include "xtag.h"
 
 typedef enum eAdaException
 {
@@ -572,7 +573,7 @@ static void readNewLine(void)
 {
   while(TRUE)
   {
-    line = (const char *) fileReadLine();
+    line = (const char *) readLineFromInputFile();
     pos = 0;
 
     if(line == NULL)
@@ -669,7 +670,7 @@ static boolean adaCmp(const char *match)
   /* if we match, increment the position pointer */
   if(status == TRUE && match != NULL)
   {
-    matchLineNum = getSourceLineNumber();
+    matchLineNum = getInputLineNumber();
     matchFilePos = getInputFilePosition();
 
     movePos((strlen(match)));
@@ -695,7 +696,7 @@ static boolean adaKeywordCmp(adaKeyword keyword)
   /* if we match, increment the position pointer */
   if(status == TRUE)
   {
-    matchLineNum = getSourceLineNumber();
+    matchLineNum = getInputLineNumber();
     matchFilePos = getInputFilePosition();
 
     movePos((strlen(AdaKeywords[keyword])));
@@ -723,7 +724,7 @@ static void skipUntilWhiteSpace(void)
      * immediately */
     if(pos >= lineLen)
     {
-      line = (const char *) fileReadLine();
+      line = (const char *) readLineFromInputFile();
       pos = 0;
 
       if(line == NULL)
@@ -834,7 +835,7 @@ static void skipPastWord(void)
      * immediately */
     if(pos >= lineLen)
     {
-      line = (const char *) fileReadLine();
+      line = (const char *) readLineFromInputFile();
       pos = 0;
 
       if(line == NULL)
@@ -1188,7 +1189,7 @@ static adaTokenInfo *adaParseVariables(adaTokenInfo *parent, adaKind kind)
   /* before we start reading input save the current line number and file
    * position, so we can reconstruct the correct line & file position for any
    * tags we create */
-  lineNum = getSourceLineNumber();
+  lineNum = getInputLineNumber();
   filePos[filePosIndex] = getInputFilePosition();
 
   /* setup local buffer... Since we may have to read a few lines to verify
@@ -2098,8 +2099,8 @@ static void storeAdaTags(adaTokenInfo *token, const char *parentScope)
      (token->name != NULL) &&
      ((token->kind == ADA_KIND_ANONYMOUS && token->children.head != NULL) ||
       token->kind != ADA_KIND_ANONYMOUS) &&
-     ((Option.include.fileScope == TRUE) ||
-      ((Option.include.fileScope == FALSE) &&
+     ((isXtagEnabled(XTAG_FILE_SCOPE) == TRUE) ||
+      ((isXtagEnabled(XTAG_FILE_SCOPE) == FALSE) &&
        (token->tag.isFileScope == FALSE))))
   {
     makeTagEntry(&token->tag);
@@ -2108,7 +2109,7 @@ static void storeAdaTags(adaTokenInfo *token, const char *parentScope)
      * an extra entry which is the full parent.tag name.  But only do this if 
      * the parentScope flag is not NULL, and this token is not of a limited 
      * scope type such as a record component, enum literal, label, etc. */
-    if((Option.include.qualifiedTags == TRUE) &&
+    if((isXtagEnabled(XTAG_QUALIFIED_TAGS) == TRUE) &&
        (token->kind != ADA_KIND_RECORD_COMPONENT) &&
        (token->kind != ADA_KIND_ENUM_LITERAL) &&
        (token->kind != ADA_KIND_FORMAL) &&
@@ -2140,7 +2141,7 @@ static void storeAdaTags(adaTokenInfo *token, const char *parentScope)
          * no extra entry. */
         currentScope = token->name;
       }
-    } /* if((Option.include.qualifiedTags == TRUE) && ... */
+    } /* if((isXtagsEnabled(XTAG_QUALIFIED_TAGS) == TRUE) && ... */
   } /* if((token->kind > ADA_KIND_UNDEFINED) && ... */
 
   /* now make the child tags */

@@ -14,6 +14,7 @@
 
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 /*
@@ -81,7 +82,7 @@ static void findLispTags (void)
 	const unsigned char* p;
 
 
-	while ((p = fileReadLine ()) != NULL)
+	while ((p = readLineFromInputFile ()) != NULL)
 	{
 		if (*p == '(')
 		{
@@ -132,7 +133,7 @@ extern parserDefinition* LispParser (void)
 
 	parserDefinition* def = parserNew ("Lisp");
 	def->kinds      = LispKinds;
-	def->kindCount  = COUNT_ARRAY (LispKinds);
+	def->kindCount  = ARRAY_SIZE (LispKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser     = findLispTags;

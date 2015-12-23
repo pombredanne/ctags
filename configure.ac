@@ -7,13 +7,15 @@
 #	Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.59])
-AC_INIT([ctags],[universal])
+AC_INIT([universal-ctags],[0.0.0])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_SILENT_RULES([yes])
 AC_CONFIG_HEADERS([config.h])
 if ! test -e "${srcdir}/config.h.in"; then
    echo "---"
    echo "--- ${srcdir}/config.h.in WAS NOT FOUND." 1>&2
    echo "--- YOU MIGHT HAVE RUN autoconf ONLY" 1>&2
-   echo "--- BUT YOU MAY HAVE TO RUN autoreconf." 1>&2
+   echo "--- BUT YOU MAY HAVE TO RUN autogen.sh." 1>&2
    echo "---"
    exit 1
 fi
@@ -35,9 +37,6 @@ AH_TEMPLATE([HAVE_STAT_ST_INO],
 	<sys/stat.h>.])
 AH_TEMPLATE([remove],
 	[Define remove to unlink if you have unlink(), but not remove().])
-AH_TEMPLATE([SEEK_SET],
-	[Define this value used by fseek() appropriately if <stdio.h>
-	(or <unistd.h> on SunOS 4.1.x) does not define them.])
 AH_TEMPLATE([INT_MAX],
 	[Define as the maximum integer on your system if not defined <limits.h>.])
 AH_TEMPLATE([CUSTOM_CONFIGURATION_FILE],
@@ -73,14 +72,9 @@ AH_TEMPLATE([HAVE_ICONV],
 AH_TEMPLATE([TMPDIR],
 	[If you wish to change the directory in which temporary files are stored,
 	define this label to the directory desired.])
-AH_TEMPLATE([REGCOMP_BROKEN],
-	[Define this label if regcomp() is broken.])
 AH_TEMPLATE([CHECK_REGCOMP],
 	[Define this label if you wish to check the regcomp() function at run time
 	for correct behavior. This function is currently broken on Cygwin.])
-AH_TEMPLATE([__USE_FIXED_PROTOTYPES__],
-	[This corrects the problem of missing prototypes for certain functions
-	in some GNU installations (e.g. SunOS 4.1.x).])
 AH_TEMPLATE([NON_CONST_PUTENV_PROTOTYPE],
 	[Define this is you have a prototype for putenv() in <stdlib.h>, but
 	doesn't declare its argument as "const char *".])
@@ -197,18 +191,10 @@ AC_ARG_ENABLE(macro-patterns,
 	[AS_HELP_STRING([--enable-macro-patterns],
 		[use patterns as default method to locate macros instead of line numbers])])
 
-AC_ARG_ENABLE(shell-globbing,
-	[AS_HELP_STRING([--enable-shell-globbing=DIR],
-		[does shell expand wildcards (yes|no)? [yes]])])
-
 AC_ARG_ENABLE(tmpdir,
 	[AS_HELP_STRING([--enable-tmpdir=DIR],
 		[default directory for temporary files [ARG=/tmp]])],
 	tmpdir_specified=yes)
-
-AC_ARG_WITH([ctags-datadir],
-	[AS_HELP_STRING([--with-ctags-datadir=DIR],
-		['universal-ctags'-specific read-only architecture-independent data [DATADIR/ctags]])])
 
 AC_ARG_WITH([ctags-sysconfdir],
 	[AS_HELP_STRING([--with-ctags-sysconfdir=DIR],
@@ -222,13 +208,6 @@ AC_ARG_PROGRAM
 
 # Process configuration options
 # -----------------------------
-
-case "${with_ctags_datadir+set}"-"$with_ctags_datadir" in #(
-"set"-"yes") ctags_datadir="${datadir}/ctags"	   ;; #(
-"set"-"no")  ctags_datadir="${datadir}"		   ;; #(
-"set"-*)     ctags_datadir="${with_ctags_datadir}" ;; #(
-*)	     ctags_datadir="${datadir}/ctags"	   ;;
-esac
 
 case "${with_ctags_sysconfdir+set}"-"$with_ctags_sysconfdir" in #(
 "set"-"yes") ctags_sysconfdir="${sysconfdir}/ctags"	 ;; #(
@@ -244,52 +223,26 @@ case "${with_ctags_libexecdir+set}"-"$with_ctags_libexecdir" in #(
 *)	     ctags_libexecdir="${libexecdir}/ctags"	 ;;
 esac
 
-pkgdatadir="${ctags_datadir}"
 pkgsysconfdir="${ctags_sysconfdir}"
 pkglibexecdir="${ctags_libexecdir}"
 
-AC_SUBST([pkgdatadir])
 AC_SUBST([pkgsysconfdir])
 AC_SUBST([pkglibexecdir])
 
-AH_TEMPLATE([PKGDATADIR],    [installation directory of 'universal-ctags'-specific read-only architecture-independent data.])
 AH_TEMPLATE([PKGSYSCONFDIR], [installation directory of 'universal-ctags'-specific read-only single-machine data.])
 AH_TEMPLATE([PKGLIBEXECDIR], [installation directory of 'universal-ctags'-specific program executables.])
 
 AC_CONFIG_COMMANDS_PRE([
-	PKGDATADIR="PRETTY_VAR_EXPAND([pkgdatadir])"
 	PKGSYSCONFDIR="PRETTY_VAR_EXPAND([pkgsysconfdir])"
 	PKGLIBEXECDIR="PRETTY_VAR_EXPAND([pkglibexecdir])"
 
-	AC_DEFINE_UNQUOTED([PKGDATADIR],    ["${PKGDATADIR}"])
 	AC_DEFINE_UNQUOTED([PKGSYSCONFDIR], ["${PKGSYSCONFDIR}"])
 	AC_DEFINE_UNQUOTED([PKGLIBEXECDIR], ["${PKGLIBEXECDIR}"])
 ])
 
-
-install_targets="install-ctags install-data install-libexec"
-AC_MSG_CHECKING(whether to install link to etags)
-if test yes = "$enable_etags"; then
-	AC_MSG_RESULT(yes)
-	install_targets="$install_targets install-etags"
-else
-	AC_MSG_RESULT(no)
-fi
-AC_MSG_CHECKING(whether to install readtags object file)
-if test yes = "$enable_readlib"; then
-	AC_MSG_RESULT(yes)
-	install_targets="$install_targets install-lib"
-else
-	AC_MSG_RESULT(no)
-fi
-AC_MSG_CHECKING(whether to install readtags command)
-if test no = "$enable_readcmd"; then
-	AC_MSG_RESULT(no)
-else
-	AC_MSG_RESULT(yes)
-	install_targets="$install_targets install-cmd"
-fi
-AC_SUBST(install_targets)
+AM_CONDITIONAL(INSTALL_LIB, [test "x$enable_readlib" = "xyes"])
+AM_CONDITIONAL(INSTALL_ETAGS, [test "x$enable_etags" = "xyes"])
+AM_CONDITIONAL(USE_READCMD, [test "x$enable_readcmd" = "xyes"])
 
 dnl AC_MSG_NOTICE(Change with $program_transform_name)
 ctags_name_executable=`echo ctags | sed "$program_transform_name"`
@@ -316,29 +269,6 @@ fi
 
 AC_PROG_CC
 
-case `uname` in
-	HP-UX)
-		AC_MSG_CHECKING(HP-UX native compiler)
-		if test "$CC" = "cc"; then
-			AC_MSG_RESULT(yes; adding compiler options for ANSI support)
-			CFLAGS="$CFLAGS -Aa -D_HPUX_SOURCE"
-		else
-			AC_MSG_RESULT(no)
-		fi
-		;;
-	SunOS)
-		if uname -r | grep '5\.' >/dev/null 2>&1; then
-			AC_MSG_CHECKING(Solaris native compiler)
-			if test "$CC" = "cc" -a "`which cc`" = "/usr/ucb/cc"; then
-				AC_MSG_RESULT(yes; adding compiler option for ANSI support)
-				CC="$CC -Xa"
-			else
-				AC_MSG_RESULT(no)
-			fi
-		fi
-		;;
-esac
-
 if test "${with_sparse_cgcc}" = "yes"; then
 	REAL_CC="${CC}"
 	CC="cgcc"
@@ -361,9 +291,26 @@ AC_PROG_LN_S
 AC_CHECK_PROG(STRIP, strip, strip, :)
 AC_SYS_LARGEFILE
 
+AC_CHECK_PROGS([BASH], [bash])
+if ! test "${BASH+set}" = "set"; then
+   AC_MSG_ERROR([bash is needed to run optlib2c translator])
+fi
 
 # Checks for operating environment
 # --------------------------------
+in_git_repo=no
+AC_MSG_CHECKING(building in a git repository)
+if test -f "${srcdir}/.git/HEAD"; then
+	in_git_repo=yes
+fi
+AC_MSG_RESULT(${in_git_repo})
+
+AC_CHECK_PROGS([GIT], [git])
+if ! test "${GIT+set}" = "set"; then
+	in_git_repo=no
+fi
+AM_CONDITIONAL([BUILD_IN_GIT_REPO], [test "x${in_git_repo}" = "xyes"])
+
 
 # Check for temporary directory
 AC_MSG_CHECKING(directory to use for temporary files)
@@ -528,24 +475,19 @@ PRETTY_ARG_VAR([WARNING_CFLAGS], [C compiler warning flags],
 
 # Checks for library functions
 # ----------------------------
-AC_CHECK_FUNCS(fnmatch,[],[
+AC_CHECK_FUNCS(fnmatch,[have_fnmatch=yes],[
 AC_LIBOBJ([fnmatch])
-CPPFLAGS="$CPPFLAGS -I${srcdir}/fnmatch"
+FNMATCH_CPPFLAGS="-I${srcdir}/fnmatch"
 AC_DEFINE(HAVE_FNMATCH)
-])
+have_fnmatch=no])
+AC_SUBST([FNMATCH_CPPFLAGS])
 AC_CHECK_HEADERS(fnmatch.h)
+AM_CONDITIONAL([HAVE_FNMATCH], [test "x$have_fnmatch" = "xyes"])
 
 AC_CHECK_FUNCS(strstr)
 AC_CHECK_FUNCS(strcasecmp stricmp, break)
 AC_CHECK_FUNCS(strncasecmp strnicmp, break)
 AC_CHECK_FUNCS(fgetpos, have_fgetpos=yes)
-
-# SEEK_SET should be in stdio.h, but may be in unistd.h on SunOS 4.1.x
-if test "$have_fgetpos" != yes ; then
-	CHECK_HEADER_DEFINE(SEEK_SET, stdio.h,,
-		CHECK_HEADER_DEFINE(SEEK_SET, unistd.h,,
-			AC_DEFINE(SEEK_SET, 0)))
-fi
 
 AC_CHECK_FUNCS(mkstemp, have_mkstemp=yes)
 if test "$have_mkstemp" != yes ; then
@@ -595,7 +537,7 @@ dnl
 dnl
 dnl Check regcomp
 dnl
-dnl If it is found but broken, define REGCOMP_BROKEN.
+dnl If it is found but broken, abort with a message.
 dnl If it is found but cannot be test brokenness, define CHECK_REGCOMP.
 dnl If it is not found, use bundled implementation.
 dnl
@@ -618,41 +560,22 @@ int main(void) {
 ])],[regcomp_works=yes],[regcomp_works=no],[AC_DEFINE(CHECK_REGCOMP)])
 AC_MSG_RESULT($regcomp_works)
 if test yes != "$regcomp_works"; then
-	AC_DEFINE(REGCOMP_BROKEN)
+	AC_MSG_ERROR([regcomp() on this system is broken.])
 fi
+have_regcomp=yes
 ],[
 dnl Using bundled regex implementation
 AC_LIBOBJ([regex])
-CPPFLAGS="$CPPFLAGS -I${srcdir}/gnu_regex"
+REGCOMP_CPPFLAGS="-I${srcdir}/gnu_regex -D__USE_GNU"
 AC_DEFINE(HAVE_REGCOMP)
-])
-# if test yes = "$with_perl_regex"; then
-# 	AC_MSG_CHECKING(for Perl regex library)
-# 	pcre_candidates="$with_perl_regex $HOME/local/lib* /usr*/local/lib* /usr/lib*"
-# 	for lib in $pcre_candidates; do
-# 		if test -f $lib/libpcreposix.so; then
-# 			pcre_lib="-L$lib -lpcreposix"
-# 			break
-# 		elif test -f $lib/libpcreposix.a; then
-# 			pcre_lib="$lib/libpcreposix.a"
-# 			break
-# 		fi
-# 	done
-# 	if test -z "$pcre_lib"; then
-# 		AC_MSG_RESULT(not found)
-# 	else
-# 		AC_MSG_RESULT($lib)
-# 		AC_DEFINE(HAVE_REGCOMP)
-# 		LDFLAGS="$LDFLAGS $pcre_lib"
-# 		have_regex=yes
-# 	fi
-# fi
-AC_CHECK_FUNCS(scandir,[install_data_targets="install-data-optlib install-data-preload"])
-AC_SUBST(install_data_targets)
+have_regcomp=no])
+AC_SUBST([REGCOMP_CPPFLAGS])
+AM_CONDITIONAL([HAVE_REGCOMP], [test "xyes" = "x$have_regcomp"])
 
-install_libexec_targets=
-AC_CHECK_FUNCS(fork waitpid execv pipe,[install_libexec_targets="$install_libexec_targets install-libexec-drivers"])
-AC_SUBST(install_libexec_targets)
+AC_CHECK_FUNCS(scandir)
+
+AC_CHECK_FUNCS(fork waitpid execv pipe,[enable_xcmd=yes],[enable_xcmd=no])
+AM_CONDITIONAL([ENABLE_XCMD], [test "xyes" = "x$enable_xcmd"])
 
 # Checks for missing prototypes
 # -----------------------------

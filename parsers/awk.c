@@ -16,6 +16,7 @@
 
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 
 /*
@@ -38,7 +39,7 @@ static void findAwkTags (void)
 	vString *name = vStringNew ();
 	const unsigned char *line;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		if (strncmp ((const char*) line, "function", (size_t) 8) == 0  &&
 			isspace ((int) line [8]))
@@ -70,7 +71,7 @@ extern parserDefinition* AwkParser (void)
 	static const char *const extensions [] = { "awk", "gawk", "mawk", NULL };
 	parserDefinition* def = parserNew ("Awk");
 	def->kinds      = AwkKinds;
-	def->kindCount  = COUNT_ARRAY (AwkKinds);
+	def->kindCount  = ARRAY_SIZE (AwkKinds);
 	def->extensions = extensions;
 	def->parser     = findAwkTags;
 	return def;

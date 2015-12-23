@@ -38,8 +38,8 @@ static kindOption PythonKinds[] = {
 	{TRUE, 'c', "class",    "classes"},
 	{TRUE, 'f', "function", "functions"},
 	{TRUE, 'm', "member",   "class members"},
-    {TRUE, 'v', "variable", "variables"},
-    {TRUE, 'i', "namespace", "imports"}
+	{TRUE, 'v', "variable", "variables"},
+	{TRUE, 'i', "namespace", "imports"}
 };
 
 typedef enum {
@@ -117,8 +117,16 @@ static void makeFunctionTag (vString *const function,
 {
 	tagEntryInfo tag;
 
-	if (! PythonKinds[K_FUNCTION].enabled)
-		return;
+	if (is_class_parent)
+	{
+		if (!PythonKinds[K_MEMBER].enabled)
+			return;
+	}
+	else
+	{
+		if (!PythonKinds[K_FUNCTION].enabled)
+			return;
+	}
 
 	initTagEntry (&tag, vStringValue (function), &(PythonKinds[K_FUNCTION]));
 
@@ -319,7 +327,7 @@ static void parseClass (const char *cp, vString *const class,
 			if (*cp == '\0')
 			{
 				/* Closing parenthesis can be in follow up line. */
-				cp = (const char *) fileReadLine ();
+				cp = (const char *) readLineFromInputFile ();
 				if (!cp) break;
 				vStringPut (inheritance, ' ');
 				continue;
@@ -708,7 +716,7 @@ static void findPythonTags (void)
 	int line_skip = 0;
 	char const *longStringLiteral = NULL;
 
-	while ((line = (const char *) fileReadLine ()) != NULL)
+	while ((line = (const char *) readLineFromInputFile ()) != NULL)
 	{
 		const char *cp = line, *candidate;
 		char const *longstring;
@@ -859,7 +867,7 @@ extern parserDefinition *PythonParser (void)
 					      NULL };
 	parserDefinition *def = parserNew ("Python");
 	def->kinds = PythonKinds;
-	def->kindCount = COUNT_ARRAY (PythonKinds);
+	def->kindCount = ARRAY_SIZE (PythonKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser = findPythonTags;

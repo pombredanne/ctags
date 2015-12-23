@@ -13,6 +13,7 @@
 
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
 #include "entry.h"
 
@@ -67,7 +68,7 @@ static int makeNamespaceTag (vString * const name, const char *dbp)
 	{
 		tagEntryInfo e;
 		initTagEntry (&e, vStringValue (name), &(ClojureKinds[K_NAMESPACE]));
-		e.lineNumber = getSourceLineNumber ();
+		e.lineNumber = getInputLineNumber ();
 		e.filePosition = getInputFilePosition ();
 
 		return makeTagEntry (&e);
@@ -83,7 +84,7 @@ static void makeFunctionTag (vString * const name, const char *dbp, int scope_in
 	{
 		tagEntryInfo e;
 		initTagEntry (&e, vStringValue (name), &(ClojureKinds[K_FUNCTION]));
-		e.lineNumber = getSourceLineNumber ();
+		e.lineNumber = getInputLineNumber ();
 		e.filePosition = getInputFilePosition ();
 
 		e.extensionFields.scopeIndex =  scope_index;
@@ -105,7 +106,7 @@ static void findClojureTags (void)
 	const char *p;
 	int scope_index = SCOPE_NIL;
 
-	while ((p = (char *)fileReadLine ()) != NULL)
+	while ((p = (char *)readLineFromInputFile ()) != NULL)
 	{
 		vStringClear (name);
 
@@ -140,7 +141,7 @@ extern parserDefinition *ClojureParser (void)
 
 	parserDefinition *def = parserNew ("Clojure");
 	def->kinds = ClojureKinds;
-	def->kindCount = COUNT_ARRAY (ClojureKinds);
+	def->kindCount = ARRAY_SIZE (ClojureKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser = findClojureTags;

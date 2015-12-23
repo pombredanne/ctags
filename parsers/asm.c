@@ -259,7 +259,7 @@ static void findAsmTags (void)
 	const unsigned char *line;
 	boolean inCComment = FALSE;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		const unsigned char *cp = line;
 		boolean labelCandidate = (boolean) (! isspace ((int) *cp));
@@ -357,13 +357,13 @@ extern parserDefinition* AsmParser (void)
 	};
 	parserDefinition* def = parserNew ("Asm");
 	def->kinds      = AsmKinds;
-	def->kindCount  = COUNT_ARRAY (AsmKinds);
+	def->kindCount  = ARRAY_SIZE (AsmKinds);
 	def->extensions = extensions;
 	def->patterns   = patterns;
 	def->parser     = findAsmTags;
 	def->initialize = initialize;
 	def->keywordTable = AsmKeywords;
-	def->keywordCount = COUNT_ARRAY (AsmKeywords);
+	def->keywordCount = ARRAY_SIZE (AsmKeywords);
 	return def;
 }
 

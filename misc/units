@@ -17,13 +17,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
+if test -n "${ZSH_VERSION+set}"; then
+    set -o SH_WORD_SPLIT
+    set +o NOMATCH
+fi
 
 #
 # Global Parameters
 #
 SHELL=/bin/sh
 CTAGS=./ctags
-DATADIR=./data
 LIBEXECDIR=./libexec
 WITH_TIMEOUT=
 WITH_VALGRIND=
@@ -47,6 +50,7 @@ readonly _TIMEOUT_EXIT=124
 readonly _VG_TIMEOUT_FACTOR=10
 readonly _VALGRIND_EXIT=58
 readonly _LINE_SPLITER=$(if type dos2unix > /dev/null 2>&1; then echo "dos2unix"; else echo "cat"; fi)
+readonly _STDERR_OUTPUT_NAME="STDERR.tmp"
 readonly _DIFF_OUTPUT_NAME="DIFF.tmp"
 readonly _NOISE_REPORT_MAX_COLUMN=50
 
@@ -87,6 +91,8 @@ Usage:
 
 	$(help_tmain)
 
+	$(help_chop)
+
 	$(help_clean_tmain)
 EOF
 }
@@ -98,11 +104,11 @@ help_help()
 
 ERROR ()
 {
-    local status="$1"
+    local status_="$1"
     local msg="$2"
     shift 2
     echo "$msg" 1>&2
-    exit $status
+    exit $status_
 }
 
 line()
@@ -441,7 +447,7 @@ run_tcase ()
     #
     # All generated file must have suffix ".tmp".
     #
-    local ostderr="$o/STDERR.tmp"
+    local ostderr="$o/${_STDERR_OUTPUT_NAME}"
     local orawout="$o/RAWOUT.tmp"
     local ofiltered="$o/FILTERED.tmp"
     local odiff="$o/${_DIFF_OUTPUT_NAME}"
@@ -469,7 +475,7 @@ run_tcase ()
     #
     # Build _CMDLINE
     #
-    _CMDLINE="${CTAGS} --verbose --options=NONE --libexec-dir=${LIBEXECDIR} --libexec-dir=+$t --data-dir=${DATADIR} --data-dir=+$t -o -"
+    _CMDLINE="${CTAGS} --verbose --options=NONE --libexec-dir=${LIBEXECDIR} --libexec-dir=+$t --data-dir=+$t -o -"
     [ -f "${fargs}" ] && _CMDLINE="${_CMDLINE} --options=${fargs}"
 
     #
@@ -651,7 +657,18 @@ run_show_diff_output ()
 
     printf "	"
     line .
-    sed -e 's/./	\0/' ${units_dir}/${t}.*/${_DIFF_OUTPUT_NAME}
+    sed -e 's/^.*$/	\0/' ${units_dir}/${t}.*/${_DIFF_OUTPUT_NAME}
+    echo
+}
+
+run_show_stderr_output ()
+{
+    local units_dir="$1"
+    local t="$2"
+
+    printf "	"
+    line .
+    sed -e 's/^.*$/	\0/' ${units_dir}/${t}.*/${_STDERR_OUTPUT_NAME} | tail -50
     echo
 }
 
@@ -677,6 +694,9 @@ run_summary ()
     count_list $L_FAILED_BY_STATUS
     for t in $L_FAILED_BY_STATUS; do
 	echo "	${t#${_DEFAULT_CATEGORY}/}"
+	if [ "${SHOW_DIFF_OUTPUT}" = yes ]; then
+	    run_show_stderr_output "${build_dir}" "${t#${_DEFAULT_CATEGORY}/}"
+	fi
     done
 
     printf '  %-40s' "#FAILED (unexpected-output):"
@@ -751,15 +771,6 @@ action_run ()
 		;;
 	    --ctags=*)
 		CTAGS="${1#--ctags=}"
-		shift
-		;;
-	    --datadir)
-		shift
-		DATADIR="$1"
-		shift
-		;;
-	    --datadir=*)
-		DATADIR="${1#--datadir=}"
 		shift
 		;;
 	    --libexecdir)
@@ -870,7 +881,6 @@ action_run ()
 	ERROR 1 "unexpected option argument for --colorized-output: ${COLORIZED_OUTPUT}"
     fi
 
-    [ -d "${DATADIR}" ] || ERROR 1 "no such directory: ${DATADIR}"
     [ -d "${LIBEXECDIR}" ] || ERROR 1 "no such directory: ${LIBEXECDIR}"
     : ${WITH_TIMEOUT:=0}
     [ "$WITH_TIMEOUT" = 0 ] || check_availability timeout
@@ -890,7 +900,6 @@ action_run ()
 	[ -d "$d" ] || continue
 	category="${d##*/}"
 	build_d=${build_dir}/${category}
-	category="${category%.r}"
 	run_dir "${category}" "$d" "${build_d}"
     done
 
@@ -912,7 +921,6 @@ $0 run [OPTIONS] UNITS-DIR
 
 	   OPTIONS:
 		--ctags CTAGS: ctags exectuable file for testing
-		--datadir DATADIR: data directory
 		--categories CATEGORY1[,CATEGORY2,...]: run only CATEGORY* related cases.
 							Category selection is done in upper
 							layer than unit selection. This
@@ -1344,15 +1352,6 @@ action_fuzz_common ()
 		CTAGS="${1#--ctags=}"
 		shift
 		;;
-	    --datadir)
-		shift
-		DATADIR="$1"
-		shift
-		;;
-	    --datadir=*)
-		DATADIR="${1#--datadir=}"
-		shift
-		;;
 	    --languages)
 		shift
 		LANGUAGES=$(echo "${1}" | tr ',' ' ')
@@ -1432,14 +1431,13 @@ action_fuzz_common ()
 	ERROR 1 "unexpected option argument for --colorized-output: ${COLORIZED_OUTPUT}"
     fi
 
-    [ -d "${DATADIR}" ] || ERROR 1 "no such directory: ${DATADIR}"
     [ -d "${LIBEXECDIR}" ] || ERROR 1 "no such directory: ${LIBEXECDIR}"
     : ${WITH_TIMEOUT:=2}
     [ "$WITH_TIMEOUT" = 0 ] || check_availability timeout
     [ "$WITH_VALGRIND" = 'yes' ] && check_availability valgrind
     check_availability find
 
-    cmdline="${CTAGS} --options=NONE --\*-kinds=\* --fields=\* --libexec-dir=${LIBEXECDIR} --data-dir=${DATADIR}"
+    cmdline="${CTAGS} --options=NONE --\*-kinds=\* --fields=\* --libexec-dir=${LIBEXECDIR}"
     _CMDLINE="${cmdline} -G -o - "
     _CMDLINE_FOR_SHRINKING="${_CMDLINE}"
     if [ "$WITH_VALGRIND" = yes ]; then
@@ -1472,7 +1470,6 @@ $0 fuzz [OPTIONS] UNITS-DIR
 
 	   OPTIONS:
 		--ctags CTAGS: ctags exectuable file for testing
-		--datadir DATADIR: data directory
 		--languages PARSER1[,PARSER2,...]: run only PARSER* related cases
 		--libexecdir LIBEXECDIR: libexec directory
 		--quiet: don't print dots as passed test cases.
@@ -1514,14 +1511,14 @@ noise_report_line ()
 {
     local pos="$1"
     local len="$2"
-    local status="$3"
+    local status_="$3"
     local how="$4"
 
     local progress_offset=$(( pos % _NOISE_REPORT_MAX_COLUMN ))
     local nspace
 
 
-    if [ $((pos + 1)) -eq "${len}" ] || [ $status -gt 0 ]; then
+    if [ $((pos + 1)) -eq "${len}" ] || [ $status_ -gt 0 ]; then
 	nspace=0
 	while [ $nspace -lt $(( _NOISE_REPORT_MAX_COLUMN - progress_offset - 1)) ]; do
 	    printf ' '
@@ -1657,7 +1654,7 @@ noise_lang_file ()
 	done
     done
     echo
-    return 0;
+    return 0
 }
 
 noise_lang ()
@@ -1701,7 +1698,6 @@ $0 noise [OPTIONS] UNITS-DIR
 
 	   OPTIONS:
 		--ctags CTAGS: ctags exectuable file for testing
-		--datadir DATADIR: data directory
 		--languages PARSER1[,PARSER2,...]: run only PARSER* related cases
 		--libexecdir LIBEXECDIR: libexec directory
 		--quiet: don't print dots as passed test cases.
@@ -1770,7 +1766,7 @@ tmain_run ()
 
     local r
     local a
-    local status=0
+    local status_=0
 
     local need_rearrange
 
@@ -1796,7 +1792,7 @@ tmain_run ()
 	line '-'
 	(
 	    cd ${subdir}
-	    ${SHELL} run.sh ${basedir}/${CTAGS} ${basedir}/${DATADIR} ${basedir}/${LIBEXECDIR} ${build_subdir}
+	    ${SHELL} run.sh ${basedir}/${CTAGS} ${basedir}/${LIBEXECDIR} ${build_subdir}
 	) > ${build_subdir}/stdout-actual.txt 2> ${build_subdir}/stderr-actual.txt
 	r=$?
 	echo $r > ${build_subdir}/exit-actual.txt
@@ -1827,7 +1823,7 @@ tmain_run ()
 		    rm ${build_subdir}/${aspect}-actual.txt
 		else
 		    failed="${failed} ${test_name}/${aspect}-${engine}"
-		    status=1
+		    status_=1
 		fi
 	    elif [ -f ${build_subdir}/${aspect}-actual.txt ]; then
 		     rm ${build_subdir}/${aspect}-actual.txt
@@ -1854,7 +1850,7 @@ tmain_run ()
 	fi
     fi
 
-    return $status
+    return $status_
 }
 
 action_tmain ()
@@ -1873,15 +1869,6 @@ action_tmain ()
 		;;
 	    --ctags=*)
 		CTAGS="${1#--ctags=}"
-		shift
-		;;
-	    --datadir)
-		shift
-		DATADIR="$1"
-		shift
-		;;
-	    --datadir=*)
-		DATADIR="${1#--datadir=}"
 		shift
 		;;
 	    --libexecdir)
@@ -1951,7 +1938,6 @@ action_tmain ()
 	ERROR 1 "unexpected option argument for --colorized-output: ${COLORIZED_OUTPUT}"
     fi
 
-    [ -d "${DATADIR}" ] || ERROR 1 "no such directory: ${DATADIR}"
     [ -d "${LIBEXECDIR}" ] || ERROR 1 "no such directory: ${LIBEXECDIR}"
 
     tmain_run ${tmain_dir} ${build_dir}
@@ -1966,7 +1952,6 @@ $0 tmain [OPTIONS] TMAIN-DIR [BUILD-DIR]
 	Run tests for main part of ctags.
 
 	--ctags CTAGS: ctags exectuable file for testing
-	--datadir DATADIR: data directory
 	--libexecdir LIBEXECDIR: libexec directory
 	--colorized-output yes|no: print the result in color.
 	--with-valgrind: (not implemented) run a test case under valgrind
@@ -2015,6 +2000,160 @@ $0 clean_tmain TMAIN-DIR
 	   Clean all files created during tmain testing
 EOF
 
+}
+
+help_chop ()
+{
+cat <<EOF
+$0 noise [OPTIONS] UNITS-DIR
+	   OPTIONS:
+		--ctags CTAGS: ctags exectuable file for testing
+		--languages PARSER1[,PARSER2,...]: run only PARSER* related cases
+		--libexecdir LIBEXECDIR: libexec directory
+		--quiet: don't print dots as passed test cases.
+		--with-timeout DURATION: run a test case under timeout
+					 command with SECOND.
+					 0 means no timeout.
+					 default is 1.
+		--with-valgrind: run a test case under valgrind
+			       If this option given, DURATION is changed to
+			       DURATION := DURATION * ${_VG_TIMEOUT_FACTOR}
+EOF
+}
+
+action_chop ()
+{
+    action_fuzz_common chop_lang "$@"
+}
+
+chop_lang ()
+{
+    local lang="$1"
+    local dir="$2"
+    shift 2
+    local f
+    local r
+    printf '%-60s\n' "Fuzzing by chopping input (${lang})"
+    line '-'
+
+    r=0
+    for f in $(find "${dir}" -type f -name 'input.*'); do
+	if ! chop_lang_file "${lang}" "${f}"; then
+	    r=1
+	    break
+	fi
+    done
+    echo
+    return $r
+}
+
+chop_lang_file ()
+{
+    local lang="$1"
+    local input="$2"
+    shift 2
+
+    local r
+    local cmdline
+    local cmdline_for_shirking
+    local len=$(stat -c %s "${input}")
+
+    local guessed_lang
+    guessed_lang=$( ${_CMDLINE_FOR_SHRINKING} --print-language "${input}" 2>/dev/null | sed -n 's/^.*: //p')
+    if [ "${lang}" !=  "${guessed_lang}" ]; then
+	return 0
+    fi
+
+    i=0
+    echo "Testing cases derived from: ${input}"
+    line '.' --no-newline
+
+    r=0
+    while [ "$i" -lt "$len" ]; do
+	if chop_lang_file_chopspec "${input}" "${len}" "$i" "${lang}"; then
+	    i=$(( i + 1 ))
+	else
+	    r=1
+	    break
+	fi
+    done
+    echo
+    return $r
+}
+
+chop()
+{
+    local input=$1
+    local pos=$2
+
+    dd if=$input bs=1 count=$pos
+}
+
+chop_lang_file_chopspec()
+{
+    local input="$1"
+    local len="$2"
+    local pos="$3"
+    local lang="$4"
+    shift 4
+
+    local dir="${input%/*}"
+    local ochopped=$(printf "%s/CHOP-INPUT-%s.tmp" "${dir}" "$pos")
+    local ocmdline=$(printf "%s/CHOP-CMDLINE-%s.tmp" "${dir}" "$pos")
+    local ovalgrind=$(printf "%s/CHOP-VALGRIND-%s.tmp" "${dir}" "$pos")
+    local oshrink=$(printf "%s/CHOP-SHRINK-%s.tmp" "${dir}" "$pos")
+
+    local cmdline
+    local cmdline_for_shirking
+    local progress_offset
+    local r
+
+    rm -f "${ocmdline}" "${ovalgrind}" "${ochopped}" "${oshrink}"
+
+    if [ "${WITH_VALGRIND}" = 'yes' ]; then
+	cmdline=$( printf "${_CMDLINE} --language-force=${lang} ${ochopped}" "${ovalgrind}" )
+    else
+	cmdline="${_CMDLINE} --language-force=${lang} ${ochopped}"
+    fi
+    cmdline_for_shirking="${_CMDLINE_FOR_SHRINKING} --language-force=${lang} %s"
+
+    chop "${input}" "${pos}" > "$ochopped"  2> /dev/null
+
+    progress_offset=$(( pos % _NOISE_REPORT_MAX_COLUMN ))
+    if [ "${progress_offset}" -eq 0 ]; then
+	[ $pos -gt 0 ] && printf " %d/%d" "$pos" "${len}"
+	echo
+    fi
+
+    echo "${cmdline}" > "${ocmdline}"
+    ( exec 2>&-; ${cmdline} 2> /dev/null > /dev/null )
+    r=$?
+    case $r in
+	0)
+	    printf 'o'
+	    noise_report_line "${pos}" "${len}" "${r}" ""
+	    rm "${ochopped}"
+	    rm -f "${ovalgrind}" "${ocmdline}"
+	    ;;
+	${_TIMEOUT_EXIT})
+	    printf "T"
+	    noise_report_line "${pos}" "${len}" "${r}" ""
+	    printf '\n%-20s\n' "[timeout $lang]" "$ochopped"
+	    [ "${RUN_SHRINK}" = 'yes' ] && fuzz_shrink "${cmdline_for_shirking}" "${ochopped}" "${oshrink}" "${lang}"
+	    ;;
+	${_VALGRIND_EXIT})
+	    printf "V"
+	    noise_report_line "${pos}" "${len}" "${r}" ""
+	    printf '\n%-20s %s\n' "[valgrind-error $lang]" "$ochopped"
+	    ;;
+	*)
+	    printf "!"
+	    noise_report_line "${pos}" "${len}" "${r}" ""
+	    printf '\n%-20s %s\n' "[unexpected-status($r) $lang]" "$ochopped"
+	    [ "${RUN_SHRINK}" = 'yes' ] && fuzz_shrink "${cmdline_for_shirking}" "${ochopped}" "${oshrink}" "${lang}"
+	    ;;
+    esac
+    return $r
 }
 
 # * Avoid issues between sed and the locale settings by overriding it using
@@ -2071,6 +2210,10 @@ main ()
 	    ;;
 	shrink)
 	    action_shrink "$@"
+	    return $?
+	    ;;
+	chop)
+	    action_chop "$@"
 	    return $?
 	    ;;
 	*)

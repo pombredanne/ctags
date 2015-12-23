@@ -22,6 +22,7 @@
 #include "routines.h"
 #include "selectors.h"
 #include "vstring.h"
+#include "xtag.h"
 
 #define TRACE_PERL_C 0
 #define TRACE if (TRACE_PERL_C) printf("perl.c:%d: ", __LINE__), printf
@@ -165,7 +166,7 @@ SUB_DECL_SWITCH:
 					}
 			}
 		}
-	} while (NULL != (cp = fileReadLine ()));
+	} while (NULL != (cp = readLineFromInputFile ()));
 
 	return FALSE;
 }
@@ -199,7 +200,7 @@ static void makeTagFromLeftSide (const char *begin, const char *end,
 	vStringNCatS(name, b, e - b + 1);
 	initTagEntry(&entry, vStringValue(name), &(PerlKinds[K_CONSTANT]));
 	makeTagEntry(&entry);
-	if (Option.include.qualifiedTags && package && vStringLength(package)) {
+	if (isXtagEnabled (XTAG_QUALIFIED_TAGS) && package && vStringLength(package)) {
 		vStringClear(name);
 		vStringCopy(name, package);
 		vStringNCatS(name, b, e - b + 1);
@@ -250,7 +251,7 @@ static int parseConstantsFromHashRef (const unsigned char *cp,
 			parseConstantsFromLine((const char *) cp, name, package);
 		switch (state) {
 			case CONST_STATE_NEXT_LINE:
-				cp = fileReadLine();
+				cp = readLineFromInputFile();
 				if (cp)
 					break;
 				else
@@ -284,7 +285,7 @@ static void findPerlTags (void)
 		RESPECT_DATA	= (1 << 1),
 	} respect_token = RESPECT_END | RESPECT_DATA;
 
-	while ((line = fileReadLine ()) != NULL)
+	while ((line = readLineFromInputFile ()) != NULL)
 	{
 		boolean spaceRequired = FALSE;
 		boolean qualified = FALSE;
@@ -355,7 +356,7 @@ static void findPerlTags (void)
 			while (isspace(*cp))
 				cp++;
 			while (!*cp || '#' == *cp) {
-				cp = fileReadLine ();
+				cp = readLineFromInputFile ();
 				if (!cp)
 					goto END_MAIN_WHILE;
 				while (isspace (*cp))
@@ -380,7 +381,7 @@ static void findPerlTags (void)
 			while (isspace (*cp))
 				cp++;
 			while (!*cp || '#' == *cp) {
-				cp = fileReadLine ();
+				cp = readLineFromInputFile ();
 				if (!cp)
 					goto END_MAIN_WHILE;
 				while (isspace (*cp))
@@ -435,7 +436,7 @@ static void findPerlTags (void)
 
 			while (!*cp || '#' == *cp) { /* Gobble up empty lines
 				                            and comments */
-				cp = fileReadLine ();
+				cp = readLineFromInputFile ();
 				if (!cp)
 					goto END_MAIN_WHILE;
 				while (isspace (*cp))
@@ -488,7 +489,7 @@ static void findPerlTags (void)
 
 				makeTagEntry(&e);
 
-				if (Option.include.qualifiedTags && qualified &&
+				if (isXtagEnabled (XTAG_QUALIFIED_TAGS) && qualified &&
 					package != NULL  && vStringLength (package) > 0)
 				{
 					vString *const qualifiedName = vStringNew ();
@@ -501,7 +502,7 @@ static void findPerlTags (void)
 			} else if (vStringLength (name) > 0)
 			{
 				makeSimpleTag (name, PerlKinds, kind);
-				if (Option.include.qualifiedTags && qualified &&
+				if (isXtagEnabled(XTAG_QUALIFIED_TAGS) && qualified &&
 					K_PACKAGE != kind &&
 					package != NULL  && vStringLength (package) > 0)
 				{
@@ -529,7 +530,7 @@ extern parserDefinition* PerlParser (void)
 					       NULL };
 	parserDefinition* def = parserNew ("Perl");
 	def->kinds      = PerlKinds;
-	def->kindCount  = COUNT_ARRAY (PerlKinds);
+	def->kindCount  = ARRAY_SIZE (PerlKinds);
 	def->extensions = extensions;
 	def->parser     = findPerlTags;
 	def->selectLanguage = selectors;

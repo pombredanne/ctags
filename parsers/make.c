@@ -15,22 +15,36 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "kind.h"
 #include "options.h"
 #include "parse.h"
 #include "read.h"
+#include "routines.h"
 #include "vstring.h"
+#include "xtag.h"
 
 /*
 *   DATA DEFINITIONS
 */
 typedef enum {
 	K_MACRO, K_TARGET, K_INCLUDE
-} shKind;
+} makeKind;
+
+typedef enum {
+	R_INCLUDE_GENERIC,
+	R_INCLUDE_OPTIONAL,
+} makeIncludeRole;
+
+static roleDesc MakeIncludeRoles [] = {
+	RoleTemplateGeneric,
+	{ TRUE, "optional", "included as an optional makefile"},
+};
 
 static kindOption MakeKinds [] = {
 	{ TRUE, 'm', "macro",  "macros"},
 	{ TRUE, 't', "target", "targets"},
-	{ FALSE,'I', "include", "includes"}
+	{ TRUE, 'I', "include", "includes",
+	  .referenceOnly = TRUE, ATTACH_ROLES(MakeIncludeRoles)},
 };
 
 /*
@@ -39,10 +53,10 @@ static kindOption MakeKinds [] = {
 
 static int nextChar (void)
 {
-	int c = fileGetc ();
+	int c = getcFromInputFile ();
 	if (c == '\\')
 	{
-		c = fileGetc ();
+		c = getcFromInputFile ();
 		if (c == '\n')
 			c = nextChar ();
 	}
@@ -56,7 +70,7 @@ static void skipLine (void)
 		c = nextChar ();
 	while (c != EOF  &&  c != '\n');
 	if (c == '\n')
-		fileUngetc (c);
+		ungetcToInputFile (c);
 }
 
 static int skipToNonWhite (int c)
@@ -103,9 +117,11 @@ static void newMacro (vString *const name)
 	makeSimpleTag (name, MakeKinds, K_MACRO);
 }
 
-static void newInclude (vString *const name)
+static void newInclude (vString *const name, boolean optional)
 {
-	makeSimpleTag (name, MakeKinds, K_INCLUDE);
+	if (isXtagEnabled (XTAG_REFERENCE_TAGS))
+		makeSimpleRefTag (name, MakeKinds, K_INCLUDE,
+				  optional? R_INCLUDE_OPTIONAL: R_INCLUDE_GENERIC);
 }
 
 static boolean isAcceptableAsInclude (vString *const name)
@@ -129,7 +145,7 @@ static void readIdentifier (const int first, vString *const id)
 		vStringPut (id, c);
 		c = nextChar ();
 	}
-	fileUngetc (c);
+	ungetcToInputFile (c);
 	vStringTerminate (id);
 }
 
@@ -169,14 +185,14 @@ static void findMakeTags (void)
 		else if (variable_possible && c == '?')
 		{
 			c = nextChar ();
-			fileUngetc (c);
+			ungetcToInputFile (c);
 			variable_possible = (c == '=');
 		}
 		else if (variable_possible && c == ':' &&
 				 stringListCount (identifiers) > 0)
 		{
 			c = nextChar ();
-			fileUngetc (c);
+			ungetcToInputFile (c);
 			if (c != '=')
 			{
 				unsigned int i;
@@ -217,7 +233,7 @@ static void findMakeTags (void)
 						c = nextChar ();
 					}
 					if (c == '\n')
-						fileUngetc (c);
+						ungetcToInputFile (c);
 					vStringTerminate (name);
 					vStringStripTrailing (name);
 					newMacro (name);
@@ -228,13 +244,14 @@ static void findMakeTags (void)
 					 || ! strcmp (vStringValue (name), "sinclude")
 					 || ! strcmp (vStringValue (name), "-include"))
 				{
+					boolean optional = (vStringValue (name)[0] == 'i')? FALSE: TRUE;
 					while (1)
 					{
 						c = skipToNonWhite (nextChar ());
 						readIdentifier (c, name);
 						vStringStripTrailing (name);
 						if (isAcceptableAsInclude(name))
-							newInclude (name);
+							newInclude (name, optional);
 
 						/* non-space characters after readIdentifier() may
 						 * be rejected by the function:
@@ -247,7 +264,7 @@ static void findMakeTags (void)
 							c = nextChar ();
 						while (c != EOF && c != '\n' && (!isspace (c)));
 						if (c == '\n')
-							fileUngetc (c);
+							ungetcToInputFile (c);
 
 						if (c == EOF || c == '\n')
 							break;
@@ -267,7 +284,7 @@ extern parserDefinition* MakefileParser (void)
 	static const char *const extensions [] = { "mak", "mk", NULL };
 	parserDefinition* const def = parserNew ("Make");
 	def->kinds      = MakeKinds;
-	def->kindCount  = COUNT_ARRAY (MakeKinds);
+	def->kindCount  = ARRAY_SIZE (MakeKinds);
 	def->patterns   = patterns;
 	def->extensions = extensions;
 	def->parser     = findMakeTags;

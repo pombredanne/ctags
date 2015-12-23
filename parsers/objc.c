@@ -222,7 +222,7 @@ static void eatComment (lexingState * st)
 		 * so we have to reload a line... */
 		if (c == NULL || *c == '\0')
 		{
-			st->cp = fileReadLine ();
+			st->cp = readLineFromInputFile ();
 			/* WOOPS... no more input...
 			 * we return, next lexing read
 			 * will be null and ok */
@@ -290,7 +290,7 @@ static objcKeyword lex (lexingState * st)
 	/* handling data input here */
 	while (st->cp == NULL || st->cp[0] == '\0')
 	{
-		st->cp = fileReadLine ();
+		st->cp = readLineFromInputFile ();
 		if (st->cp == NULL)
 			return Tok_EOF;
 
@@ -1096,7 +1096,7 @@ static void findObjcTags (void)
 	ignorePreprocStuff_escaped = FALSE;
 
 	st.name = vStringNew ();
-	st.cp = fileReadLine ();
+	st.cp = readLineFromInputFile ();
 	toDoNext = &globalScope;
 	tok = lex (&st);
 	while (tok != Tok_EOF)
@@ -1133,13 +1133,13 @@ extern parserDefinition *ObjcParser (void)
 					      NULL };
 	parserDefinition *def = parserNewFull ("ObjectiveC", KIND_FILE_ALT);
 	def->kinds = ObjcKinds;
-	def->kindCount = COUNT_ARRAY (ObjcKinds);
+	def->kindCount = ARRAY_SIZE (ObjcKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser = findObjcTags;
 	def->initialize = objcInitialize;
 	def->selectLanguage = selectors;
 	def->keywordTable = objcKeywordTable;
-	def->keywordCount = COUNT_ARRAY (objcKeywordTable);
+	def->keywordCount = ARRAY_SIZE (objcKeywordTable);
 	return def;
 }

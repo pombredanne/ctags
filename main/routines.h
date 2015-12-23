@@ -6,13 +6,14 @@
 *
 *   External interface to routines.c
 */
-#ifndef _ROUTINES_H
-#define _ROUTINES_H
+#ifndef CTAGS_MAIN_ROUTINES_H
+#define CTAGS_MAIN_ROUTINES_H
 
 /*
 *   INCLUDE FILES
 */
 #include "general.h"  /* must always come first */
+#include <stdio.h>
 
 /*
 *   MACROS
@@ -135,6 +136,6 @@ extern FILE *tempFile (const char *const mode, char **const pName);
 
 extern char* baseFilenameSansExtensionNew (const char *const fileName, const char *const templateExt);
 
-#endif  /* _ROUTINES_H */
+#endif  /* CTAGS_MAIN_ROUTINES_H */
 
 /* vi:set tabstop=4 shiftwidth=4: */

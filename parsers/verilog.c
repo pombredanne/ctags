@@ -29,6 +29,7 @@
 #include "parse.h"
 #include "read.h"
 #include "routines.h"
+#include "xtag.h"
 
 /*
 *   MACROS
@@ -265,7 +266,7 @@ static tokenInfo *newToken (void)
 	tokenInfo *const token = xMalloc (1, tokenInfo);
 	token->kind = K_UNDEFINED;
 	token->name = vStringNew ();
-	token->lineNumber = getSourceLineNumber ();
+	token->lineNumber = getInputLineNumber ();
 	token->filePosition = getInputFilePosition ();
 	token->scope = NULL;
 	token->nestLevel = 0;
@@ -313,25 +314,24 @@ static void pruneTokens (tokenInfo * token)
 
 static const kindOption *kindFromKind (const verilogKind kind)
 {
-	if (isLanguage (Lang_systemverilog))
+	if (isInputLanguage (Lang_systemverilog))
 		return &(SystemVerilogKinds[kind]);
-	else /* isLanguage (Lang_verilog) */
+	else /* isInputLanguage (Lang_verilog) */
 		return &(VerilogKinds[kind]);
 }
 
 static char kindEnabled (const verilogKind kind)
 {
-	if (isLanguage (Lang_systemverilog))
+	if (isInputLanguage (Lang_systemverilog))
 		return SystemVerilogKinds[kind].enabled;
-	else /* isLanguage (Lang_verilog) */
+	else /* isInputLanguage (Lang_verilog) */
 		return VerilogKinds[kind].enabled;
 }
 
 static void buildKeywordHash (const langType language, unsigned int idx)
 {
 	size_t i;
-	const size_t count = 
-			sizeof (KeywordTable) / sizeof (KeywordTable [0]);
+	const size_t count = ARRAY_SIZE (KeywordTable);
 	for (i = 0  ;  i < count  ;  ++i)
 	{
 		const keywordAssoc *p = &KeywordTable [i];
@@ -362,7 +362,7 @@ static int vGetc (void)
 {
 	int c;
 	if (Ungetc == '\0')
-		c = fileGetc ();
+		c = getcFromInputFile ();
 	else
 	{
 		c = Ungetc;
@@ -370,13 +370,13 @@ static int vGetc (void)
 	}
 	if (c == '/')
 	{
-		int c2 = fileGetc ();
+		int c2 = getcFromInputFile ();
 		if (c2 == EOF)
 			return EOF;
 		else if (c2 == '/')  /* strip comment until end-of-line */
 		{
 			do
-				c = fileGetc ();
+				c = getcFromInputFile ();
 			while (c != '\n'  &&  c != EOF);
 		}
 		else if (c2 == '*')  /* strip block comment */
@@ -385,14 +385,14 @@ static int vGetc (void)
 		}
 		else
 		{
-			fileUngetc (c2);
+			ungetcToInputFile (c2);
 		}
 	}
 	else if (c == '"')  /* strip string contents */
 	{
 		int c2;
 		do
-			c2 = fileGetc ();
+			c2 = getcFromInputFile ();
 		while (c2 != '"'  &&  c2 != EOF);
 		c = '@';
 	}
@@ -449,7 +449,7 @@ static boolean readIdentifier (tokenInfo *const token, int c)
 		}
 		vUngetc (c);
 		vStringTerminate (token->name);
-		token->lineNumber = getSourceLineNumber ();
+		token->lineNumber = getInputLineNumber ();
 		token->filePosition = getInputFilePosition ();
 	}
 	return (boolean)(vStringLength (token->name) > 0);
@@ -494,7 +494,7 @@ static int skipMacro (int c)
 
 static verilogKind getKind (tokenInfo *const token)
 {
-	return (verilogKind) lookupKeyword (vStringValue (token->name), getSourceLanguage () );
+	return (verilogKind) lookupKeyword (vStringValue (token->name), getInputLanguage () );
 }
 
 static void updateKind (tokenInfo *const token)
@@ -574,15 +574,12 @@ static void createTag (tokenInfo *const token)
 	}
 
 	/* Create tag */
-	initTagEntryFull(
-			&tag,
-			vStringValue (token->name),
-			token->lineNumber,
-			getSourceLanguageName (),
-			token->filePosition,
-			getSourceFileTagPath (),
-			kindFromKind (kind)
-			);
+	initTagEntry (&tag,
+		      vStringValue (token->name),
+		      kindFromKind (kind));
+	tag.lineNumber = token->lineNumber;
+	tag.filePosition = token->filePosition;
+
 	verbose ("Adding tag %s (kind %d)", vStringValue (token->name), kind);
 	if (currentContext->kind != K_UNDEFINED)
 	{
@@ -598,7 +595,7 @@ static void createTag (tokenInfo *const token)
 		verbose ("Class %s extends %s\n", vStringValue (token->name), tag.extensionFields.inheritance);
 	}
 	makeTagEntry (&tag);
-	if (Option.include.qualifiedTags && currentContext->kind != K_UNDEFINED)
+	if (isXtagEnabled(XTAG_QUALIFIED_TAGS) && currentContext->kind != K_UNDEFINED)
 	{
 		vString *const scopedName = vStringNew ();
 
@@ -740,7 +737,7 @@ static void processPortList (int c)
 
 		deleteToken (token);
 	}
-	else
+	else if (c != EOF)
 	{
 		vUngetc (c);
 	}
@@ -759,7 +756,7 @@ static void processFunction (tokenInfo *const token)
 		readIdentifier (token, c);
 		c = skipWhite (vGetc ());
 		/* Identify class type prefixes and create respective context*/
-		if (isLanguage (Lang_systemverilog) && c == ':')
+		if (isInputLanguage (Lang_systemverilog) && c == ':')
 		{
 			c = vGetc ();
 			if (c == ':')
@@ -1160,7 +1157,7 @@ extern parserDefinition* VerilogParser (void)
 	static const char *const extensions [] = { "v", NULL };
 	parserDefinition* def = parserNew ("Verilog");
 	def->kinds      = VerilogKinds;
-	def->kindCount  = COUNT_ARRAY (VerilogKinds);
+	def->kindCount  = ARRAY_SIZE (VerilogKinds);
 	def->extensions = extensions;
 	def->parser     = findVerilogTags;
 	def->initialize = initializeVerilog;
@@ -1172,7 +1169,7 @@ extern parserDefinition* SystemVerilogParser (void)
 	static const char *const extensions [] = { "sv", "svh", "svi", NULL };
 	parserDefinition* def = parserNew ("SystemVerilog");
 	def->kinds      = SystemVerilogKinds;
-	def->kindCount  = COUNT_ARRAY (SystemVerilogKinds);
+	def->kindCount  = ARRAY_SIZE (SystemVerilogKinds);
 	def->extensions = extensions;
 	def->parser     = findVerilogTags;
 	def->initialize = initializeSystemVerilog;

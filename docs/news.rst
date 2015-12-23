@@ -13,49 +13,62 @@ Importing most of the changes from exuberant-ctags
 See "exuberant-ctags" in "Tracking other projects" about the status of
 importing. Some changes in Fedora and Debian are also imported.
 
-New parsers
+Parsers related changes
 ---------------------------------------------------------------------
+
+New parsers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The following parsers have been added:
 
-* ada
-* clojure
-* coffee *xcmd*
-* css
-* d
-* ctags option library *optlib*
-* falcon
-* go
-* json
-* m4 *optlib*
-* mib *optlib*
-* rust
-* windres
+* Ada
+* Clojure
+* CSS
+* D
+* Diff
+* DTS
+* Falcon
+* Go
+* JSON
+* ObjectiveC
+* Perl6
+* R
+* reStructuredText
+* Rust
 * SystemVerilog
+* WindRes
+* Zephir
+* coffee *xcmd*
+* ctags option library *optlib*
+* m4 *optlib*
 
 See "Option library" about  *optlib*.
 See "External parser command" about *xcmd*.
 
+TIPS: you can list newly introduced parsers if you have
+exuberant-ctags with following command line:
+
+.. code-block:: console
+
+		$ diff -ruN <(universal-ctags --list-languages) <(exuberant-ctags --list-languages)  | grep '^[-+]'
+
 
 Heavily improved language parsers
----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 * php
 * verilog
 
-Miscellaneous new options
+New options
 ---------------------------------------------------------------------
-
-Tagging #undef
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-``--undef[=yes|no]``
-    Allows disabling the generation of macro tags from ``#undef``
-    directives.
 
 Wildcard in options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For the purpose gathering as much as possible information from source
 code "wildcard"(``*``) in option is introduced.
+
+``--extra=*``
+
+	Enables all extra tags.
 
 ``--fields=*``
 
@@ -152,11 +165,171 @@ On windows mingw32, you must specify ``WITH_ICONV=yes`` like below::
 
 	C:\dev\ctags>mingw32-make -f mk_mingw.mak WITH_ICONV=yes
 
+Extra tag entries (``--extra``)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Following extra tag entries are newly introduced.
+
+``F``
+
+	Equivalent to --file-scope.
+
+``.``
+
+	Do the similar to the ``f`` extra flag but the entry addresses the end line.
+
+``p``
+
+	Include pseudo tags.
+
+
+``--list-...`` options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``--list-extras``, ``--list-features`` and ``--list-fields`` are added.
+
+``--put-field-prefix`` options
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some fields are newly introduced in universal-ctags. We will introduce more
+in the future. Other tags generators may also introduce for their own fields.
+
+In such situation there is concern about confliction of field names;
+mixing tags files generated from multiple tags generator including
+universal-ctags is difficult. ``--put-field-prefix`` provides a
+workaround for the use case. When ``--put-field-prefix`` is given,
+ctags puts "UCTAGS" as prefix for newly introduced field.
+
+.. code-block:: console
+
+    $ cat /tmp/foo.h
+    #include <stdio.h>
+    $ ./ctags -o - --extra=+r --fields=+r /tmp/foo.h
+    stdio.h	/tmp/foo.h	/^#include <stdio.h>/;"	h	role:system
+    $ ./ctags --put-field-prefix -o - --extra=+r --fields=+r /tmp/foo.h
+    stdio.h	/tmp/foo.h	/^#include <stdio.h>/;"	h	UCTAGSrole:system
+
+In this example, ``role`` is prefixed.
+
+
+Changes in tags file format
+---------------------------------------------------------------------
+
+
 Omitting the pattern for too long input line
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-No to make too large tags file, a pattern filed of tags file is omitted
-when its size goes beyond 96 bytes.
+Not to make too large tags file, a pattern filed of tags file is
+omitted when its size goes beyond 96 bytes.
 
 An input source file with single long line causes too large tags file.
 Such input files are popular in javascript: tools for size optimizing
 generate them.
+
+Reference tags
+---------------------------------------------------------------------
+
+Traditionally ctags collects the information for locating where an
+object having name is DEFINED.
+
+In addition Universal-ctags supports reference tags. If ``r`` extra
+tag is enabled, universal-ctags collects the information for locating
+where an object having name is REFERENCED. This feature is proposed
+by @shigio on #569 for GNU GLOBAL.
+
+Let me show some examples. Here is the target input file named reftag.c.
+
+.. code-block:: c
+
+    #include <stdio.h>
+    #include "foo.h"
+    #define TYPE point
+    struct TYPE { int x, y };
+    TYPE p;
+    #undef TYPE
+
+
+Traditionally output:
+
+.. code-block:: console
+
+    $ ./ctags -o - reftag.c
+    TYPE	reftag.c	/^#define TYPE /;"	d	file:
+    TYPE	reftag.c	/^struct TYPE { int x, y };$/;"	s	file:
+    p	reftag.c	/^TYPE p;$/;"	v
+    x	reftag.c	/^struct TYPE { int x, y };$/;"	m	struct:TYPE	file:
+
+Output with enabling ``r`` extra tag:
+
+.. code-block:: console
+
+    $ ./ctags --list-extras | grep ^r
+    r	Include reference tags	off
+    $ ./ctags -o - --extra=+r reftag.c
+    TYPE	reftag.c	/^#define TYPE /;"	d	file:
+    TYPE	reftag.c	/^#undef TYPE$/;"	d	file:
+    TYPE	reftag.c	/^struct TYPE { int x, y };$/;"	s	file:
+    foo.h	reftag.c	/^#include "foo.h"/;"	h
+    p	reftag.c	/^TYPE p;$/;"	v
+    stdio.h	reftag.c	/^#include <stdio.h>/;"	h
+    x	reftag.c	/^struct TYPE { int x, y };$/;"	m	struct:TYPE	file:
+
+`#undef X` and two `#include` are newly collected. Reference tags may
+have "role" information representing how it is
+referenced. Universal-ctags print the role information when `r` field
+is enabled with ``--fields=+r``. (If a tag doesn't have no specialized
+role, `generic` is used as the name of role.)
+
+.. code-block:: console
+
+    $  ./ctags -o - --extra=+r --fields=+r reftag.c
+    TYPE	reftag.c	/^#define TYPE /;"	d	file:
+    TYPE	reftag.c	/^#undef TYPE$/;"	d	file:	role:undef
+    TYPE	reftag.c	/^struct TYPE { int x, y };$/;"	s	file:
+    foo.h	reftag.c	/^#include "foo.h"/;"	h	role:local
+    p	reftag.c	/^TYPE p;$/;"	v
+    stdio.h	reftag.c	/^#include <stdio.h>/;"	h	role:system
+    x	reftag.c	/^struct TYPE { int x, y };$/;"	m	struct:TYPE	file:
+
+`Reference tag marker` field is specialized to GNU global requirement; D is used
+for the traditional definition tags, and R is used for the new reference tags.
+The field can be used only in ``--_xformat`` option.
+
+.. code-block:: console
+
+    $ ./ctags -x --_xformat="%R %-16N %4n %-16F %C" --extra=+r reftag.c
+    D TYPE                3 reftag.c         #define TYPE point
+    D TYPE                4 reftag.c         struct TYPE { int x, y };
+    D p                   5 reftag.c         TYPE p;
+    D x                   4 reftag.c         struct TYPE { int x, y };
+    R TYPE                6 reftag.c         #undef TYPE
+    R foo.h               2 reftag.c         #include "foo.h"
+    R stdio.h             1 reftag.c         #include <stdio.h>
+
+Though the facility for collecting reference tags is implemented, only
+few parsers utilized it now. All available roles can be listed with
+``--list-roles`` option:
+
+.. code-block:: console
+
+    $ ./ctags --_list-roles
+    C	d	undef	undefined	on
+    C	h	system	system header	on
+    C	h	local	local header	on
+    C++	d	undef	undefined	on
+    C++	h	system	system header	on
+    C++	h	local	local header	on
+    DTS	d	undef	undefined	on
+    DTS	h	system	system header	on
+    DTS	h	local	local header	on
+    Make	I	generic	non-categorized generic role	on
+    Make	I	optional	included as an optional makefile	on
+    Sh	s	generic	non-categorized generic role	on
+    Vera	d	undef	undefined	on
+    Vera	h	system	system header	on
+    Vera	h	local	local header	on
+
+The first column shows a name of parser.
+The second column shows a name of kind.
+The third column shows a name of role.
+The fourth column shows description of the role.
+The first column shows whether the role is enabled or not.
+Currently ctags doesn't provide the way for disabling a
+specified role.
