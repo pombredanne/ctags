@@ -52,7 +52,6 @@
 #  include <sys/types.h>  /* required by dirent.h */
 # endif
 # include <dirent.h>  /* to declare opendir() */
-# undef boolean
 #endif
 #ifdef HAVE_DIRECT_H
 # include <direct.h>  /* to _getcwd() */
@@ -65,12 +64,24 @@
 #endif
 
 
+#include "ctags.h"
 #include "debug.h"
+#include "entry.h"
+#include "error.h"
+#include "field.h"
 #include "keyword.h"
 #include "main.h"
 #include "options.h"
 #include "read.h"
 #include "routines.h"
+#include "trace.h"
+#include "writer.h"
+
+#ifdef HAVE_JANSSON
+#include "interactive.h"
+#include <jansson.h>
+#include <errno.h>
+#endif
 
 /*
 *   MACROS
@@ -81,11 +92,13 @@
 *   DATA DEFINITIONS
 */
 static struct { long files, lines, bytes; } Totals = { 0, 0, 0 };
+static mainLoopFunc mainLoop;
+static void *mainData;
 
 /*
 *   FUNCTION PROTOTYPES
 */
-static boolean createTagsForEntry (const char *const entryName);
+static bool createTagsForEntry (const char *const entryName);
 
 /*
 *   FUNCTION DEFINITIONS
@@ -100,22 +113,22 @@ extern void addTotals (
 	Totals.bytes += bytes;
 }
 
-extern boolean isDestinationStdout (void)
+extern bool isDestinationStdout (void)
 {
-	boolean toStdout = FALSE;
+	bool toStdout = false;
 
-	if (Option.xref  ||  Option.filter  ||
+	if (outputFormatUsedStdoutByDefault() ||  Option.filter  ||  Option.interactive ||
 		(Option.tagFileName != NULL  &&  (strcmp (Option.tagFileName, "-") == 0
 						  || strcmp (Option.tagFileName, "/dev/stdout") == 0
 		)))
-		toStdout = TRUE;
+		toStdout = true;
 	return toStdout;
 }
 
 #if defined (HAVE_OPENDIR)
-static boolean recurseUsingOpendir (const char *const dirName)
+static bool recurseUsingOpendir (const char *const dirName)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	DIR *const dir = opendir (dirName);
 	if (dir == NULL)
 		error (WARNING | PERROR, "cannot recurse into directory \"%s\"", dirName);
@@ -128,13 +141,13 @@ static boolean recurseUsingOpendir (const char *const dirName)
 				strcmp (entry->d_name, "..") != 0)
 			{
 				char *filePath;
-				boolean free_p = FALSE;
+				bool free_p = false;
 				if (strcmp (dirName, ".") == 0)
 					filePath = entry->d_name;
 				else
 				  {
 					filePath = combinePathAndFile (dirName, entry->d_name);
-					free_p = TRUE;
+					free_p = true;
 				  }
 				resize |= createTagsForEntry (filePath);
 				if (free_p)
@@ -148,11 +161,11 @@ static boolean recurseUsingOpendir (const char *const dirName)
 
 #elif defined (HAVE_FINDFIRST) || defined (HAVE__FINDFIRST)
 
-static boolean createTagsForWildcardEntry (
+static bool createTagsForWildcardEntry (
 		const char *const pattern, const size_t dirLength,
 		const char *const entryName)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	/* we must not recurse into the directories "." or ".." */
 	if (strcmp (entryName, ".") != 0  &&  strcmp (entryName, "..") != 0)
 	{
@@ -165,9 +178,9 @@ static boolean createTagsForWildcardEntry (
 	return resize;
 }
 
-static boolean createTagsForWildcardUsingFindfirst (const char *const pattern)
+static bool createTagsForWildcardUsingFindfirst (const char *const pattern)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	const size_t dirLength = baseFilename (pattern) - pattern;
 #if defined (HAVE_FINDFIRST)
 	struct ffblk fileInfo;
@@ -196,13 +209,21 @@ static boolean createTagsForWildcardUsingFindfirst (const char *const pattern)
 
 #endif
 
-static boolean recurseIntoDirectory (const char *const dirName)
+
+static bool recurseIntoDirectory (const char *const dirName)
 {
-	boolean resize = FALSE;
+	static unsigned int recursionDepth = 0;
+
+	recursionDepth++;
+
+	bool resize = false;
 	if (isRecursiveLink (dirName))
 		verbose ("ignoring \"%s\" (recursive link)\n", dirName);
 	else if (! Option.recurse)
 		verbose ("ignoring \"%s\" (directory)\n", dirName);
+	else if(recursionDepth > Option.maxRecursionDepth)
+		verbose ("not descending in directory \"%s\" (depth %u > %u)\n",
+				dirName, recursionDepth, Option.maxRecursionDepth);
 	else
 	{
 		verbose ("RECURSING into directory \"%s\"\n", dirName);
@@ -219,12 +240,15 @@ static boolean recurseIntoDirectory (const char *const dirName)
 		}
 #endif
 	}
+
+	recursionDepth--;
+
 	return resize;
 }
 
-static boolean createTagsForEntry (const char *const entryName)
+static bool createTagsForEntry (const char *const entryName)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	fileStatus *status = eStat (entryName);
 
 	Assert (entryName != NULL);
@@ -247,9 +271,9 @@ static boolean createTagsForEntry (const char *const entryName)
 
 #ifdef MANUAL_GLOBBING
 
-static boolean createTagsForWildcardArg (const char *const arg)
+static bool createTagsForWildcardArg (const char *const arg)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	vString *const pattern = vStringNewInit (arg);
 	char *patternS = vStringValue (pattern);
 
@@ -271,9 +295,9 @@ static boolean createTagsForWildcardArg (const char *const arg)
 
 #endif
 
-static boolean createTagsForArgs (cookedArgs *const args)
+static bool createTagsForArgs (cookedArgs *const args)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 
 	/*  Generate tags for each argument on the command line.
 	 */
@@ -294,9 +318,9 @@ static boolean createTagsForArgs (cookedArgs *const args)
 
 /*  Read from an opened file a list of file names for which to generate tags.
  */
-static boolean createTagsFromFileInput (FILE *const fp, const boolean filter)
+static bool createTagsFromFileInput (FILE *const fp, const bool filter)
 {
-	boolean resize = FALSE;
+	bool resize = false;
 	if (fp != NULL)
 	{
 		cookedArgs *args = cArgNewFromLineFile (fp);
@@ -320,18 +344,18 @@ static boolean createTagsFromFileInput (FILE *const fp, const boolean filter)
 
 /*  Read from a named file a list of file names for which to generate tags.
  */
-static boolean createTagsFromListFile (const char *const fileName)
+static bool createTagsFromListFile (const char *const fileName)
 {
-	boolean resize;
+	bool resize;
 	Assert (fileName != NULL);
 	if (strcmp (fileName, "-") == 0)
-		resize = createTagsFromFileInput (stdin, FALSE);
+		resize = createTagsFromFileInput (stdin, false);
 	else
 	{
 		FILE *const fp = fopen (fileName, "r");
 		if (fp == NULL)
 			error (FATAL | PERROR, "cannot open list file \"%s\"", fileName);
-		resize = createTagsFromFileInput (fp, FALSE);
+		resize = createTagsFromFileInput (fp, false);
 		fclose (fp);
 	}
 	return resize;
@@ -358,10 +382,10 @@ static clock_t clock (void)
 
 static void printTotals (const clock_t *const timeStamps)
 {
-	const unsigned long totalTags = TagFile.numTags.added +
-									TagFile.numTags.prev;
+	const unsigned long totalTags = numTagsTotal();
+	const unsigned long addedTags = numTagsAdded();
 
-	fprintf (errout, "%ld file%s, %ld line%s (%ld kB) scanned",
+	fprintf (stderr, "%ld file%s, %ld line%s (%ld kB) scanned",
 			Totals.files, plural (Totals.files),
 			Totals.lines, plural (Totals.lines),
 			Totals.bytes/1024L);
@@ -370,46 +394,57 @@ static void printTotals (const clock_t *const timeStamps)
 		const double interval = ((double) (timeStamps [1] - timeStamps [0])) /
 								CLOCKS_PER_SEC;
 
-		fprintf (errout, " in %.01f seconds", interval);
+		fprintf (stderr, " in %.01f seconds", interval);
 		if (interval != (double) 0.0)
-			fprintf (errout, " (%lu kB/s)",
+			fprintf (stderr, " (%lu kB/s)",
 					(unsigned long) (Totals.bytes / interval) / 1024L);
 	}
 #endif
-	fputc ('\n', errout);
+	fputc ('\n', stderr);
 
-	fprintf (errout, "%lu tag%s added to tag file",
-			TagFile.numTags.added, plural (TagFile.numTags.added));
+	fprintf (stderr, "%lu tag%s added to tag file",
+			addedTags, plural(addedTags));
 	if (Option.append)
-		fprintf (errout, " (now %lu tags)", totalTags);
-	fputc ('\n', errout);
+		fprintf (stderr, " (now %lu tags)", totalTags);
+	fputc ('\n', stderr);
 
 	if (totalTags > 0  &&  Option.sorted != SO_UNSORTED)
 	{
-		fprintf (errout, "%lu tag%s sorted", totalTags, plural (totalTags));
+		fprintf (stderr, "%lu tag%s sorted", totalTags, plural (totalTags));
 #ifdef CLOCK_AVAILABLE
-		fprintf (errout, " in %.02f seconds",
+		fprintf (stderr, " in %.02f seconds",
 				((double) (timeStamps [2] - timeStamps [1])) / CLOCKS_PER_SEC);
 #endif
-		fputc ('\n', errout);
+		fputc ('\n', stderr);
 	}
 
 #ifdef DEBUG
-	fprintf (errout, "longest tag line = %lu\n",
-			(unsigned long) TagFile.max.line);
+	fprintf (stderr, "longest tag line = %lu\n",
+		 (unsigned long) maxTagsLine ());
 #endif
 }
 
-static boolean etagsInclude (void)
+static bool etagsInclude (void)
 {
-	return (boolean)(Option.etags && Option.etagsInclude != NULL);
+	return (bool)(Option.etags && Option.etagsInclude != NULL);
 }
 
-static void makeTags (cookedArgs *args)
+extern void setMainLoop (mainLoopFunc func, void *data)
+{
+	mainLoop = func;
+	mainData = data;
+}
+
+static void runMainLoop (cookedArgs *args)
+{
+	(* mainLoop) (args, mainData);
+}
+
+static void batchMakeTags (cookedArgs *args, void *user CTAGS_ATTR_UNUSED)
 {
 	clock_t timeStamps [3];
-	boolean resize = FALSE;
-	boolean files = (boolean)(! cArgOff (args) || Option.fileList != NULL
+	bool resize = false;
+	bool files = (bool)(! cArgOff (args) || Option.fileList != NULL
 							  || Option.filter);
 
 	if (! files)
@@ -435,12 +470,12 @@ static void makeTags (cookedArgs *args)
 	if (Option.fileList != NULL)
 	{
 		verbose ("Reading list file\n");
-		resize = (boolean) (createTagsFromListFile (Option.fileList) || resize);
+		resize = (bool) (createTagsFromListFile (Option.fileList) || resize);
 	}
 	if (Option.filter)
 	{
 		verbose ("Reading filter input\n");
-		resize = (boolean) (createTagsFromFileInput (stdin, TRUE) || resize);
+		resize = (bool) (createTagsFromFileInput (stdin, true) || resize);
 	}
 	if (! files  &&  Option.recurse)
 		resize = recurseIntoDirectory (".");
@@ -457,35 +492,110 @@ static void makeTags (cookedArgs *args)
 #undef timeStamp
 }
 
-static boolean isSafeVar (const char* var)
+#ifdef HAVE_JANSSON
+void interactiveLoop (cookedArgs *args, void *user CTAGS_ATTR_UNUSED)
 {
-	char *safe_vars[] = {
+	char buffer[1024];
+	json_t *request;
+
+	fputs ("{\"_type\": \"program\", \"name\": \"" PROGRAM_NAME "\", \"version\": \"" PROGRAM_VERSION "\"}\n", stdout);
+	fflush (stdout);
+
+	while (fgets (buffer, sizeof(buffer), stdin))
+	{
+		if (buffer[0] == '\n')
+			continue;
+
+		request = json_loads (buffer, JSON_DISABLE_EOF_CHECK, NULL);
+		if (! request)
+		{
+			error (FATAL, "invalid json");
+			goto next;
+		}
+
+		json_t *command = json_object_get (request, "command");
+		if (! command)
+		{
+			error (FATAL, "command name not found");
+			goto next;
+		}
+
+		if (!strcmp ("generate-tags", json_string_value (command)))
+		{
+			json_int_t size = -1;
+			const char *filename;
+
+			if (json_unpack (request, "{ss}", "filename", &filename) == -1)
+			{
+				error (FATAL, "invalid generate-tags request");
+				goto next;
+			}
+
+			json_unpack (request, "{sI}", "size", &size);
+
+			openTagFile ();
+			if (size == -1)
+			{					/* read from disk */
+				createTagsForEntry (filename);
+			}
+			else
+			{					/* read nbytes from stream */
+				unsigned char *data = eMalloc (size);
+				size = fread (data, 1, size, stdin);
+				MIO *mio = mio_new_memory (data, size, eRealloc, eFree);
+				parseFileWithMio (filename, mio);
+				mio_free (mio);
+			}
+
+			closeTagFile (false);
+			fputs ("{\"_type\": \"completed\", \"command\": \"generate-tags\"}\n", stdout);
+			fflush(stdout);
+		}
+		else
+		{
+			error (FATAL, "unknown command name");
+			goto next;
+		}
+
+	next:
+		json_decref (request);
+	}
+}
+#endif
+
+static bool isSafeVar (const char* var)
+{
+	const char *safe_vars[] = {
 		"BASH_FUNC_module()=",
 		"BASH_FUNC_scl()=",
 		NULL
 	};
-	char *sv;
+	const char *sv;
 
 	for (sv = safe_vars[0]; sv != NULL; sv++)
 		if (strncmp(var, sv, strlen (sv)) == 0)
-			return TRUE;
+			return true;
 
-	return FALSE;
+	return false;
 }
 
 static void sanitizeEnviron (void)
 {
-	char **e = NULL;
+	char **e;
 	int i;
 
 #if HAVE_DECL___ENVIRON
 	e = __environ;
 #elif HAVE_DECL__NSGETENVIRON
-{
-	char ***ep = _NSGetEnviron();
-	if (ep)
-		e = *ep;
-}
+	{
+		char ***ep = _NSGetEnviron();
+		if (ep)
+			e = *ep;
+		else
+			e = NULL;
+	}
+#else
+	e = NULL;
 #endif
 
 	if (!e)
@@ -514,14 +624,22 @@ static void sanitizeEnviron (void)
  *		Start up code
  */
 
-extern int main (int __unused__ argc, char **argv)
+extern int main (int argc CTAGS_ATTR_UNUSED, char **argv)
 {
 	cookedArgs *args;
+
+	TRACE_INIT();
+
+	setErrorPrinter (stderrDefaultErrorPrinter, NULL);
+	setMainLoop (batchMakeTags, NULL);
+	setTagWriter (WRITER_U_CTAGS);
 
 	setCurrentDirectory ();
 	setExecutableName (*argv++);
 	sanitizeEnviron ();
 	checkRegex ();
+	initFieldObjects ();
+	initXtagObjects ();
 
 	args = cArgNewFromArgv (argv);
 	previewFirstOption (args);
@@ -532,8 +650,8 @@ extern int main (int __unused__ argc, char **argv)
 	verbose ("Reading initial options from command line\n");
 	parseCmdlineOptions (args);
 	checkOptions ();
-	unifyLanguageMaps ();
-	makeTags (args);
+
+	runMainLoop (args);
 
 	/*  Clean up.
 	 */
@@ -551,10 +669,8 @@ extern int main (int __unused__ argc, char **argv)
 #endif
 
 	if (Option.printLanguage)
-		return (Option.printLanguage == TRUE)? 0: 1;
+		return (Option.printLanguage == true)? 0: 1;
 
 	exit (0);
 	return 0;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

@@ -9,12 +9,12 @@
 #define CTAGS_MAIN_KIND_H
 
 #include "general.h"
+#include "types.h"
+#include "routines.h"		/* for STRINGIFY */
 #include "vstring.h"
 
-#define RoleTemplateGeneric { TRUE, "generic", "non-categorized generic role" }
-
 typedef struct sRoleDesc {
-	boolean enabled;
+	bool enabled;
 	const char* name;		  /* role name */
 	const char* description;	  /* displayed in --help output */
 } roleDesc;
@@ -32,30 +32,82 @@ extern const char *renderRole (const roleDesc* const role, vString* b);
 
 #define KIND_NULL    '\0'
 
+#define KIND_GHOST_INDEX -1
 #define KIND_GHOST   ' '
 #define KIND_GHOST_LONG "ghost"
 
+#define KIND_FILE_INDEX -2
 #define KIND_FILE_DEFAULT 'F'
 #define KIND_FILE_DEFAULT_LONG "file"
 
 #define KIND_FILE_ALT '!'
 
-#define KIND_GENERIC_REFERENCE '@'
-#define KIND_GENERIC_REFERENCE_DEFAULT_LONG "reference"
-
-/* Don't use in your parser. */
 #define KIND_WILDCARD '*'
 
-typedef struct sKindOption {
-	boolean enabled;          /* are tags for kind enabled? */
+typedef struct sScopeSeparator {
+	char  parentLetter;
+	const char *separator;
+} scopeSeparator;
+
+struct sKindDefinition {
+	bool enabled;          /* are tags for kind enabled? */
 	char  letter;               /* kind letter */
-	const char* name;		  /* kind name */
-	const char* description;	  /* displayed in --help output */
-	boolean referenceOnly;
+	char* name;		  /* kind name */
+	char* description;	  /* displayed in --help output */
+	bool referenceOnly;
 	int nRoles;		/* The number of role elements. */
 	roleDesc *roles;
-} kindOption;
+	scopeSeparator *separators;
+	unsigned int separatorCount;
+
+	int id;
+
+	/* TODO:Following fields should be moved to kindObject. */
+	/* Usage of `syncWith' field is a bit tricky.
+
+	   If `LANG_AUTO' is specified to `syncWith' field of a kind
+	   (target kind), the main part of ctags updtes the field with
+	   the id of a  parser (master parser) when initializing
+	   parsers. It also updates `slave' and `master' fields.
+
+	   If the value other than `LANG_AUTO' is specified,
+	   the main part does nothing. */
+	langType syncWith;
+	kindDefinition *slave;
+	kindDefinition *master;
+};
 
 #define ATTACH_ROLES(RS) .nRoles = ARRAY_SIZE(RS), .roles = RS
-extern void printKind (const kindOption* const kind, boolean allKindFields, boolean indent);
+#define ATTACH_SEPARATORS(S) .separators = S, .separatorCount = ARRAY_SIZE(S)
+
+/* The value of `tabSeparated' is meaningfull only when `allKindFields' is true. */
+extern void printKind (const kindDefinition* const kind, bool allKindFields, bool indent,
+		       bool tabSeparated);
+extern void printKindListHeader (bool indent, bool tabSeparated);
+extern const char *scopeSeparatorFor (const kindDefinition *kind, char parentLetter);
+
+extern void enableKind (kindDefinition *kind, bool enable);
+
+#define PR_KIND_STR(X) PR_KIND_WIDTH_##X
+#define PR_KIND_FMT(X,T) "%-" STRINGIFY(PR_KIND_STR(X)) STRINGIFY(T)
+
+#define PR_KIND_WIDTH_LANG 15
+
+struct kindControlBlock;
+typedef void (* freeKindDefFunc) (kindDefinition *);
+extern struct kindControlBlock* allocKindControlBlock (parserDefinition *parser);
+extern void freeKindControlBlock (struct kindControlBlock* kcb);
+extern int  defineKind (struct kindControlBlock* kcb, kindDefinition *def,
+						freeKindDefFunc freeKindDef);
+extern int countKinds (struct kindControlBlock* kcb);
+extern kindDefinition *getKind (struct kindControlBlock* kcb, int kindIndex);
+extern kindDefinition *getKindForLetter (struct kindControlBlock* kcb, int letter);
+extern kindDefinition *getKindForName (struct kindControlBlock* kcb, const char* name);
+extern void linkKindDependency (struct kindControlBlock *masterKCB,
+								struct kindControlBlock *slaveKCB);
+
+#ifdef DEBUG
+extern bool doesParserUseKind (struct kindControlBlock* kcb, char letter);
+#endif
+
 #endif	/* CTAGS_MAIN_KIND_H */

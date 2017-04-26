@@ -13,7 +13,10 @@
 *   INCLUDE FILES
 */
 #include "general.h"  /* must always come first */
+
 #include <stdio.h>
+
+#include "mio.h"
 
 /*
 *   MACROS
@@ -23,6 +26,10 @@
 #define xRealloc(p,n,Type) (Type *)eRealloc((p), (n) * sizeof (Type))
 
 #define ARRAY_SIZE(X)      (sizeof (X) / sizeof (X[0]))
+#define ARRAY_AND_SIZE(X)  (X), ARRAY_SIZE(X)
+
+#define STRINGIFY(X) STRINGIFY_(X)
+#define STRINGIFY_(X) #X
 
 /*
  *  Portability macros
@@ -56,25 +63,25 @@ typedef struct {
 	char* name;
 
 		/* Does file exist? If not, members below do not contain valid data. */
-	boolean exists;
+	bool exists;
 
 		/* is file path a symbolic link to another file? */
-	boolean isSymbolicLink;
+	bool isSymbolicLink;
 
 		/* Is file (pointed to) a directory? */
-	boolean isDirectory;
+	bool isDirectory;
 
 		/* Is file (pointed to) a normal file? */
-	boolean isNormalFile;
+	bool isNormalFile;
 
 		/* Is file (pointed to) executable? */
-	boolean isExecutable;
+	bool isExecutable;
 
 		/* Is file (pointed to) setuid? */
-	boolean isSetuid;
+	bool isSetuid;
 
 		/* Is file (pointed to) setgid? */
-	boolean isSetgid;
+	bool isSetgid;
 
 		/* Size of file (pointed to) */
 	unsigned long size;
@@ -87,7 +94,7 @@ extern void freeRoutineResources (void);
 extern void setExecutableName (const char *const path);
 extern const char *getExecutableName (void);
 extern const char *getExecutablePath (void);
-extern void error (const errorSelection selection, const char *const format, ...) __printf__ (2, 3);
+extern void error (const errorSelection selection, const char *const format, ...) CTAGS_ATTR_PRINTF (2, 3);
 
 /* Memory allocation functions */
 #ifdef NEED_PROTO_MALLOC
@@ -112,30 +119,28 @@ extern void toLowerString (char* str);
 extern void toUpperString (char* str);
 extern char* newLowerString (const char* str);
 extern char* newUpperString (const char* str);
+extern bool strToUInt(const char *const str, int base, unsigned int *value);
+extern bool strToULong(const char *string, int base, unsigned long *value);
+extern bool strToInt(const char *const str, int base, int *value);
+extern bool strToLong(const char *string, int base, long *value);
 
 /* File system functions */
 extern void setCurrentDirectory (void);
 extern fileStatus *eStat (const char *const fileName);
 extern void eStatFree (fileStatus *status);
-extern boolean doesFileExist (const char *const fileName);
-extern boolean doesExecutableExist (const char *const fileName);
-extern boolean isRecursiveLink (const char* const dirName);
-extern boolean isSameFile (const char *const name1, const char *const name2);
-#if defined(NEED_PROTO_FGETPOS)
-extern int fgetpos  (FILE *stream, fpos_t *pos);
-extern int fsetpos  (FILE *stream, fpos_t *pos);
-#endif
+extern bool doesFileExist (const char *const fileName);
+extern bool doesExecutableExist (const char *const fileName);
+extern bool isRecursiveLink (const char* const dirName);
+extern bool isSameFile (const char *const name1, const char *const name2);
 extern const char *baseFilename (const char *const filePath);
 extern const char *fileExtension (const char *const fileName);
-extern boolean isAbsolutePath (const char *const path);
+extern bool isAbsolutePath (const char *const path);
 extern char *combinePathAndFile (const char *const path, const char *const file);
 extern char* absoluteFilename (const char *file);
 extern char* absoluteDirname (char *file);
 extern char* relativeFilename (const char *file, const char *dir);
-extern FILE *tempFile (const char *const mode, char **const pName);
+extern MIO *tempFile (const char *const mode, char **const pName);
 
 extern char* baseFilenameSansExtensionNew (const char *const fileName, const char *const templateExt);
 
 #endif  /* CTAGS_MAIN_ROUTINES_H */
-
-/* vi:set tabstop=4 shiftwidth=4: */

@@ -24,8 +24,8 @@ typedef enum {
 	K_FUNCTION
 } lispKind;
 
-static kindOption LispKinds [] = {
-	{ TRUE, 'f', "function", "functions" }
+static kindDefinition LispKinds [] = {
+	{ true, 'f', "function", "functions" }
 };
 
 /*
@@ -67,7 +67,6 @@ static void L_getit (vString *const name, const unsigned char *dbp)
 	}
 	for (p=dbp ; *p!='\0' && *p!='(' && !isspace ((int) *p) && *p!=')' ; p++)
 		vStringPut (name, *p);
-	vStringTerminate (name);
 
 	if (vStringLength (name) > 0)
 		makeSimpleTag (name, LispKinds, K_FUNCTION);
@@ -132,12 +131,10 @@ extern parserDefinition* LispParser (void)
 	};
 
 	parserDefinition* def = parserNew ("Lisp");
-	def->kinds      = LispKinds;
+	def->kindTable      = LispKinds;
 	def->kindCount  = ARRAY_SIZE (LispKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser     = findLispTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

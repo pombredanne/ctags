@@ -22,9 +22,9 @@ typedef enum {
 	K_NAMESPACE
 } clojureKind;
 
-static kindOption ClojureKinds[] = {
-	{TRUE, 'f', "function", "functions"},
-	{TRUE, 'n', "namespace", "namespaces"}
+static kindDefinition ClojureKinds[] = {
+	{true, 'f', "function", "functions"},
+	{true, 'n', "namespace", "namespaces"}
 };
 
 static int isNamespace (const char *strp)
@@ -58,7 +58,6 @@ static void functionName (vString * const name, const char *dbp)
 	for (p = dbp; *p != '\0' && *p != '(' && !isspace ((int) *p) && *p != ')';
 		p++)
 		vStringPut (name, *p);
-	vStringTerminate (name);
 }
 
 static int makeNamespaceTag (vString * const name, const char *dbp)
@@ -74,7 +73,7 @@ static int makeNamespaceTag (vString * const name, const char *dbp)
 		return makeTagEntry (&e);
 	}
 	else
-		return SCOPE_NIL;
+		return CORK_NIL;
 }
 
 static void makeFunctionTag (vString * const name, const char *dbp, int scope_index)
@@ -104,7 +103,7 @@ static void findClojureTags (void)
 {
 	vString *name = vStringNew ();
 	const char *p;
-	int scope_index = SCOPE_NIL;
+	int scope_index = CORK_NIL;
 
 	while ((p = (char *)readLineFromInputFile ()) != NULL)
 	{
@@ -133,20 +132,18 @@ static void findClojureTags (void)
 extern parserDefinition *ClojureParser (void)
 {
 	static const char *const extensions[] = {
-		"clj", NULL
+		"clj", "cljs", "cljc", NULL
 	};
 	static const char *const aliases[] = {
 		NULL
 	};
 
 	parserDefinition *def = parserNew ("Clojure");
-	def->kinds = ClojureKinds;
+	def->kindTable = ClojureKinds;
 	def->kindCount = ARRAY_SIZE (ClojureKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser = findClojureTags;
-	def->useCork = TRUE;
+	def->useCork = true;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

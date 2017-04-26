@@ -35,13 +35,13 @@
 *   FUNCTION DEFINITIONS
 */
 
-extern void catFile (FILE *fp)
+extern void catFile (MIO *mio)
 {
-	if (fp != NULL)
+	if (mio != NULL)
 	{
 		int c;
-		fseek (fp, 0, SEEK_SET);
-		while ((c = getc (fp)) != EOF)
+		mio_seek (mio, 0, SEEK_SET);
+		while ((c = mio_getc (mio)) != EOF)
 			putchar (c);
 		fflush (stdout);
 	}
@@ -55,17 +55,46 @@ extern void catFile (FILE *fp)
 # define PE_CONST const
 #endif
 
-extern void externalSortTags (const boolean toStdout)
+/*
+   Output file name should not be evaluated in system(3) function.
+   The name must be used as is. Quotations are required to block the
+   evaluation.
+
+   Normal single-quotes are used to quote a cstring:
+   a => 'a'
+   " => '"'
+
+   If a single-quote is included in the cstring, use double quotes for quoting it.
+   ' => ''"'"''
+*/
+static void appendCstringWithQuotes (vString *dest, const char* cstr)
+{
+#ifdef WIN32
+	vStringCatS (dest, cstr);
+#else
+	vStringPut (dest, '\'');
+	for (const char *o = cstr; *o; o++)
+	{
+		if (*o == '\'')
+			vStringCatS (dest, "'\"'\"'");
+		else
+			vStringPut (dest, *o);
+	}
+	vStringPut (dest, '\'');
+#endif
+}
+
+extern void externalSortTags (const bool toStdout, MIO *tagFile)
 {
 	const char *const sortNormalCommand = "sort -u";
 	const char *const sortFoldedCommand = "sort -u -f";
 	const char *sortCommand =
 		Option.sorted == SO_FOLDSORTED ? sortFoldedCommand : sortNormalCommand;
+# ifndef HAVE_SETENV
 	PE_CONST char *const sortOrder1 = "LC_COLLATE=C";
 	PE_CONST char *const sortOrder2 = "LC_ALL=C";
-	const size_t length = 4 + strlen (sortOrder1) + strlen (sortOrder2) +
-			strlen (sortCommand) + (2 * strlen (tagFileName ()));
-	char *const cmd = (char *) malloc (length + 1);
+# endif
+	vString *cmd = vStringNew ();
 	int ret = -1;
 
 	if (cmd != NULL)
@@ -80,19 +109,29 @@ extern void externalSortTags (const boolean toStdout)
 		putenv (sortOrder1);
 		putenv (sortOrder2);
 # endif
-		if (toStdout)
-			sprintf (cmd, "%s", sortCommand);
-		else
-			sprintf (cmd, "%s -o %s %s", sortCommand,
-					tagFileName (), tagFileName ());
+		vStringCatS (cmd, sortCommand);
+		if (! toStdout)
+		{
+			vStringCatS (cmd, " -o ");
+			appendCstringWithQuotes (cmd, tagFileName ());
+			vStringPut (cmd, ' ');
+			appendCstringWithQuotes (cmd, tagFileName ());
+		}
 #else
-		if (toStdout)
-			sprintf (cmd, "%s %s %s", sortOrder1, sortOrder2, sortCommand);
-		else
-			sprintf (cmd, "%s %s %s -o %s %s", sortOrder1, sortOrder2,
-					sortCommand, tagFileName (), tagFileName ());
+		vStringCatS (cmd, sortOrder1);
+		vStringPut (cmd, ' ');
+		vStringCatS (cmd, sortOrder2);
+		vStringPut (cmd, ' ');
+		vStringCatS (cmd, sortCommand);
+		if (! toStdout)
+		{
+			vStringCats (cmd, " -o ");
+			appendCstringWithQuotes (cmd, tagFileName ());
+			vStringPut (cmd, ' ');
+			appendCstringWithQuotes (cmd, tagFileName ());
+		}
 #endif
-		verbose ("system (\"%s\")\n", cmd);
+		verbose ("system (\"%s\")\n", vStringValue (cmd));
 		if (toStdout)
 		{
 			const int fdstdin = 0;
@@ -101,19 +140,18 @@ extern void externalSortTags (const boolean toStdout)
 			fdsave = dup (fdstdin);
 			if (fdsave < 0)
 				error (FATAL | PERROR, "cannot save stdin fd");
-			if (dup2 (fileno (TagFile.fp), fdstdin) < 0)
+			if (dup2 (fileno (mio_file_get_fp (tagFile)), fdstdin) < 0)
 				error (FATAL | PERROR, "cannot redirect stdin");
 			if (lseek (fdstdin, 0, SEEK_SET) != 0)
 				error (FATAL | PERROR, "cannot rewind tag file");
-			ret = system (cmd);
+			ret = system (vStringValue (cmd));
 			if (dup2 (fdsave, fdstdin) < 0)
 				error (FATAL | PERROR, "cannot restore stdin fd");
 			close (fdsave);
 		}
 		else
-			ret = system (cmd);
-		free (cmd);
-
+			ret = system (vStringValue (cmd));
+		vStringDelete (cmd);
 	}
 	if (ret != 0)
 		error (FATAL | PERROR, "cannot sort tag file");
@@ -127,11 +165,11 @@ extern void externalSortTags (const boolean toStdout)
  *  so have lots of memory if you have large tag files.
  */
 
-static void failedSort (FILE *const fp, const char* msg)
+extern void failedSort (MIO *const mio, const char* msg)
 {
 	const char* const cannotSort = "cannot sort tag file";
-	if (fp != NULL)
-		fclose (fp);
+	if (mio != NULL)
+		mio_free (mio);
 	if (msg == NULL)
 		error (FATAL | PERROR, "%s", cannotSort);
 	else
@@ -155,20 +193,20 @@ static int compareTags (const void *const one, const void *const two)
 }
 
 static void writeSortedTags (
-		char **const table, const size_t numTags, const boolean toStdout)
+		char **const table, const size_t numTags, const bool toStdout)
 {
-	FILE *fp;
+	MIO *mio;
 	size_t i;
 
 	/*  Write the sorted lines back into the tag file.
 	 */
 	if (toStdout)
-		fp = stdout;
+		mio = mio_new_fp (stdout, NULL);
 	else
 	{
-		fp = fopen (tagFileName (), "w");
-		if (fp == NULL)
-			failedSort (fp, NULL);
+		mio = mio_new_file (tagFileName (), "w");
+		if (mio == NULL)
+			failedSort (mio, NULL);
 	}
 	for (i = 0 ; i < numTags ; ++i)
 	{
@@ -176,26 +214,23 @@ static void writeSortedTags (
 		 *  pattern) if this is not an xref file.
 		 */
 		if (i == 0  ||  Option.xref  ||  strcmp (table [i], table [i-1]) != 0)
-			if (fputs (table [i], fp) == EOF)
-				failedSort (fp, NULL);
+			if (mio_puts (mio, table [i]) == EOF)
+				failedSort (mio, NULL);
 	}
 	if (toStdout)
-		fflush (fp);
-	else
-		fclose (fp);
+		mio_flush (mio);
+	mio_free (mio);
 }
 
-extern void internalSortTags (const boolean toStdout)
+extern void internalSortTags (const bool toStdout, MIO* mio, size_t numTags)
 {
 	vString *vLine = vStringNew ();
-	FILE *fp = NULL;
 	const char *line;
 	size_t i;
 	int (*cmpFunc)(const void *, const void *);
 
 	/*  Allocate a table of line pointers to be sorted.
 	 */
-	size_t numTags = TagFile.numTags.added + TagFile.numTags.prev;
 	const size_t tableSize = numTags * sizeof (char *);
 	char **const table = (char **) malloc (tableSize);  /* line pointers */
 	DebugStatement ( size_t mallocSize = tableSize; )  /* cumulative total */
@@ -203,28 +238,15 @@ extern void internalSortTags (const boolean toStdout)
 
 	cmpFunc = Option.sorted == SO_FOLDSORTED ? compareTagsFolded : compareTags;
 	if (table == NULL)
-		failedSort (fp, "out of memory");
+		failedSort (mio, "out of memory");
 
-	/*  Open the tag file and place its lines into allocated buffers.
-	 */
-	if (toStdout)
+	for (i = 0  ;  i < numTags  &&  ! mio_eof (mio)  ;  )
 	{
-		fp = TagFile.fp;
-		fseek (fp, 0, SEEK_SET);
-	}
-	else
-	{
-		fp = fopen (tagFileName (), "r");
-		if (fp == NULL)
-			failedSort (fp, NULL);
-	}
-	for (i = 0  ;  i < numTags  &&  ! feof (fp)  ;  )
-	{
-		line = readLineRaw (vLine, fp);
+		line = readLineRaw (vLine, mio);
 		if (line == NULL)
 		{
-			if (! feof (fp))
-				failedSort (fp, NULL);
+			if (! mio_eof (mio))
+				failedSort (mio, NULL);
 			break;
 		}
 		else if (*line == '\0'  ||  strcmp (line, "\n") == 0)
@@ -235,15 +257,13 @@ extern void internalSortTags (const boolean toStdout)
 
 			table [i] = (char *) malloc (stringSize);
 			if (table [i] == NULL)
-				failedSort (fp, "out of memory");
+				failedSort (mio, "out of memory");
 			DebugStatement ( mallocSize += stringSize; )
 			strcpy (table [i], line);
 			++i;
 		}
 	}
 	numTags = i;
-	if (! toStdout)
-		fclose (fp);
 	vStringDelete (vLine);
 
 	/*  Sort the lines.
@@ -259,5 +279,3 @@ extern void internalSortTags (const boolean toStdout)
 }
 
 #endif
-
-/* vi:set tabstop=4 shiftwidth=4: */

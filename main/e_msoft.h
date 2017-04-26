@@ -9,16 +9,12 @@
 #ifndef E_MSOFT_H
 #define E_MSOFT_H
 
-/*  MS-DOS/Windows doesn't allow manipulation of standard error,
- *  so we send it to stdout instead.
- */
-#define errout  stdout
-
 #define CASE_INSENSITIVE_FILENAMES 1
 #define MANUAL_GLOBBING 1
 #define MSDOS_STYLE_PATH 1
 #define HAVE_FCNTL_H 1
 #define HAVE_IO_H 1
+#define HAVE_LIMITS_H 1
 #define HAVE_STDLIB_H 1
 #define HAVE_SYS_STAT_H 1
 #define HAVE_SYS_TYPES_H 1
@@ -47,6 +43,12 @@
 # endif
 # define findfirst_t intptr_t
 
+#if (_MSC_VER >= 1800) // Visual Studio 2013 or newer
+#define HAVE_STDBOOL_H 1
+#else
+typedef enum { false, true } bool;
+#endif
+
 # ifndef _CRT_SECURE_NO_DEPRECATE
 #  define _CRT_SECURE_NO_DEPRECATE 1
 # endif
@@ -55,6 +57,7 @@
 #elif defined (__MINGW32__)
 
 # include <_mingw.h>
+# define HAVE_STDBOOL_H 1
 # define HAVE_DIR_H 1
 # define HAVE_DIRENT_H 1
 # define HAVE__FINDFIRST 1

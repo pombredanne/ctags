@@ -14,8 +14,9 @@
 #include "general.h"  /* always include first */
 #include "parse.h"    /* always include */
 #include "routines.h"
+#include "selectors.h"
 
-static const tagRegexTable const rexxTagRegexTable [] = {
+static tagRegexTable rexxTagRegexTable [] = {
 	{"^([A-Za-z0-9@#$\\.!?_]+)[ \t]*:", "\\1",
 	 "s,subroutine,subroutines", NULL},
 };
@@ -28,11 +29,12 @@ extern parserDefinition* RexxParser (void)
 {
 	static const char *const extensions [] = { "cmd", "rexx", "rx", NULL };
 	parserDefinition* const def = parserNew ("REXX");
+	static selectLanguage selectors[] = { selectByRexxCommentAndDosbatchLabelPrefix,
+					      NULL };
 	def->extensions = extensions;
 	def->tagRegexTable = rexxTagRegexTable;
 	def->tagRegexCount = ARRAY_SIZE (rexxTagRegexTable);
 	def->method     = METHOD_NOT_CRAFTED|METHOD_REGEX;
+	def->selectLanguage = selectors;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

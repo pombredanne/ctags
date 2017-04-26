@@ -1,9 +1,9 @@
-.PHONY: check units fuzz noise tmain tinst clean-units clean-tmain clean-gcov run-gcov codecheck
+.PHONY: check units fuzz noise tmain tinst clean-units clean-tmain clean-gcov run-gcov codecheck cppcheck
 
 check: tmain units
 
 CTAGS_TEST = ./ctags$(EXEEXT)
-READ_TEST = ./$(READ_CMD)
+READ_TEST = ./readtags$(EXEEXT)
 TIMEOUT=
 LANGUAGES=
 CATEGORIES=
@@ -66,7 +66,7 @@ chop: $(CTAGS_TEST)
 #
 # UNITS Target
 #
-units: TIMEOUT := $(shell timeout --version > /dev/null 2>&1 && echo 5 || echo 0)
+units: TIMEOUT := $(shell timeout --version > /dev/null 2>&1 && echo 10 || echo 0)
 units: $(CTAGS_TEST)
 	@ \
 	if test -n "$${ZSH_VERSION+set}"; then set -o SH_WORD_SPLIT; fi; \
@@ -88,7 +88,8 @@ units: $(CTAGS_TEST)
 		$${VALGRIND} --run-shrink \
 		--with-timeout=$(TIMEOUT) \
 		$${SHOW_DIFF_OUTPUT}"; \
-	 $(SHELL) $${c} $(srcdir)/Units $${builddir}/Units
+	 TRAVIS=$(TRAVIS) APPVEYOR=$(APPVEYOR) \
+		 $(SHELL) $${c} $(srcdir)/Units $${builddir}/Units
 
 clean-units:
 	$(SILENT) echo Cleaning test units
@@ -116,7 +117,8 @@ tmain: $(CTAGS_TEST)
 		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} \
 		$${SHOW_DIFF_OUTPUT}"; \
-	 $(SHELL) $${c} $(srcdir)/Tmain $${builddir}/Tmain
+	TRAVIS=$(TRAVIS) APPVEYOR=$(APPVEYOR) \
+		$(SHELL) $${c} $(srcdir)/Tmain $${builddir}/Tmain
 
 clean-tmain:
 	$(SILENT) echo Cleaning main part tests
@@ -161,3 +163,14 @@ clean-gcov:
 	$(SILENT) echo Cleaning coverage reports
 	$(SILENT) rm -f $(ALL_SRCS:.c=.gcda)
 	$(SILENT) rm -f $(srcdir)/*.gcov
+
+#
+# Cppcheck
+#
+CPPCHECK_DEFS   = -DHAVE_LIBYAML -DHAVE_LIBXML -DHAVE_COPROC -DHAVE_DECL___ENVIRON
+CPPCHECK_UNDEFS = -UDEBUG -UMIO_DEBUG -UCXX_DEBUGGING_ENABLED
+CPPCHECK_FLAGS  = --enable=all
+
+cppcheck:
+	cppcheck $(CPPCHECK_DEFS) $(CPPCHECK_UNDEFS) $(CPPCHECK_UNDEFS) $(CPPCHECK_FLAGS) \
+		 $$(git  ls-files | grep '^\(parsers\|main\)/.*\.[ch]' )

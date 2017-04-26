@@ -12,12 +12,36 @@
 #ifndef CTAGS_MAIN_PARSERS_H
 #define CTAGS_MAIN_PARSERS_H
 
+#ifdef HAVE_LIBXML
+#define XML_PARSER_LIST \
+	DbusIntrospectParser, \
+	GladeParser,  \
+	Maven2Parser, \
+	PlistXMLParser, \
+	RelaxNGParser, \
+	SvgParser, \
+	XsltParser
+#else
+#define XML_PARSER_LIST
+#endif
+
+#ifdef HAVE_LIBYAML
+#define YAML_PARSER_LIST						\
+	YamlParser,									\
+	AnsiblePlaybookParser
+#else
+#define YAML_PARSER_LIST
+#endif
+
+
 /* Add the name of any new parser definition function here */
 #define PARSER_LIST \
 	AdaParser, \
 	AntParser, \
 	AsmParser, \
 	AspParser, \
+	AutoconfParser, \
+	AutomakeParser, \
 	AwkParser, \
 	BasicParser, \
 	BetaParser, \
@@ -25,15 +49,19 @@
 	CoffeeScriptParser, \
 	CParser, \
 	CppParser, \
+	CPreProParser, \
 	CssParser, \
 	CsharpParser, \
 	CtagsParser, \
 	CobolParser, \
+	CUDAParser, \
 	DParser, \
 	DiffParser, \
+	DtdParser, \
 	DTSParser, \
 	DosBatchParser, \
 	EiffelParser, \
+  ElmParser, \
 	ErlangParser, \
 	FalconParser, \
 	FlexParser, \
@@ -41,23 +69,36 @@
 	GdbinitParser, \
 	GoParser, \
 	HtmlParser, \
+        IniconfParser, \
 	JavaParser, \
+	JavaPropertiesParser, \
 	JavaScriptParser, \
 	JsonParser, \
+	LdScriptParser, \
 	LispParser, \
 	LuaParser, \
 	M4Parser, \
+	ManParser, \
 	MakefileParser, \
 	MatLabParser, \
+	MyrddinParser, \
 	ObjcParser, \
+	OldCppParser, \
+	OldCParser, \
 	OcamlParser, \
 	PascalParser, \
 	PerlParser, \
 	Perl6Parser, \
 	PhpParser, \
+	PodParser, \
+	ProtobufParser, \
 	PythonParser, \
+	PythonLoggingConfigParser, \
 	RParser, \
+	RSpecParser, \
 	RexxParser, \
+	RobotParser, \
+	RpmSpecParser, \
 	RstParser, \
 	RubyParser, \
 	RustParser, \
@@ -66,8 +107,10 @@
 	SlangParser, \
 	SmlParser, \
 	SqlParser, \
+	SystemdUnitParser, \
 	TclParser, \
 	TexParser, \
+	TTCNParser, \
 	VeraParser, \
 	VerilogParser, \
 	SystemVerilogParser, \
@@ -75,8 +118,7 @@
 	VimParser, \
 	WindResParser, \
 	YaccParser, \
+	YumRepoParser, \
 	ZephirParser
 
 #endif  /* CTAGS_MAIN_PARSERS_H */
-
-/* vi:set tabstop=4 shiftwidth=4: */

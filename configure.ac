@@ -82,7 +82,6 @@ AH_TEMPLATE([MSDOS_STYLE_PATH],
 	[Define to 1 if your system uses MS-DOS style path.])
 
 
-
 # Report system info
 # ------------------
 program_name=[`grep 'PROGRAM_NAME  *"' $srcdir/main/ctags.h | sed -e 's/.*"\([^"]*\)".*/\1/'`]
@@ -204,6 +203,10 @@ AC_ARG_WITH([ctags-libexecdir],
 	[AS_HELP_STRING([--with-ctags-libexecdir=DIR],
 		['universal-ctags'-specific program executables [LIBEXECDIR/ctags]])])
 
+AC_ARG_ENABLE([debugging],
+	[AS_HELP_STRING([--enable-debugging],
+		[enable debugging features])])
+
 AC_ARG_PROGRAM
 
 # Process configuration options
@@ -245,12 +248,12 @@ AM_CONDITIONAL(INSTALL_ETAGS, [test "x$enable_etags" = "xyes"])
 AM_CONDITIONAL(USE_READCMD, [test "x$enable_readcmd" = "xyes"])
 
 dnl AC_MSG_NOTICE(Change with $program_transform_name)
-ctags_name_executable=`echo ctags | sed "$program_transform_name"`
-AC_SUBST(ctags_name_executable)
-etags_name_executable=`echo etags | sed "$program_transform_name"`
-AC_SUBST(etags_name_executable)
+CTAGS_NAME_EXECUTABLE=`echo ctags | sed "$program_transform_name"`
+AC_SUBST(CTAGS_NAME_EXECUTABLE)
+ETAGS_NAME_EXECUTABLE=`echo etags | sed "$program_transform_name"`
+AC_SUBST(ETAGS_NAME_EXECUTABLE)
 
-AC_DEFINE_UNQUOTED(ETAGS, "$etags_name_executable")
+AC_DEFINE_UNQUOTED(ETAGS, "$ETAGS_NAME_EXECUTABLE")
 
 if test "$enable_custom_config" = no -o "$enable_custom_config" = yes ; then
 	AC_MSG_NOTICE(no name supplied for custom configuration file)
@@ -264,10 +267,14 @@ if test "$enable_macro_patterns" = yes ; then
 	AC_MSG_NOTICE(tag file will use patterns for macros by default)
 fi
 
+AM_CONDITIONAL(ENABLE_DEBUGGING, [test "x$enable_debugging" = "xyes"])
+
+
 # Checks for programs
 # -------------------
 
 AC_PROG_CC
+AC_PROG_CC_C99
 
 if test "${with_sparse_cgcc}" = "yes"; then
 	REAL_CC="${CC}"
@@ -291,10 +298,11 @@ AC_PROG_LN_S
 AC_CHECK_PROG(STRIP, strip, strip, :)
 AC_SYS_LARGEFILE
 
-AC_CHECK_PROGS([BASH], [bash])
-if ! test "${BASH+set}" = "set"; then
-   AC_MSG_ERROR([bash is needed to run optlib2c translator])
-fi
+AC_CHECK_PROGS([perl_found], [perl], [yes], [no])
+AM_CONDITIONAL([RUN_OPTLIB2C], [test "${perl_found}" = "yes"])
+
+AC_PATH_PROGS(RST2MAN, [rst2man rst2man.py], [no])
+AM_CONDITIONAL([HAVE_RST2MAN], [test "x$RST2MAN" != "xno"])
 
 # Checks for operating environment
 # --------------------------------
@@ -374,7 +382,7 @@ fi
 # Checks for header files
 # -----------------------
 
-AC_CHECK_HEADERS([dirent.h fcntl.h io.h stat.h stdlib.h string.h])
+AC_CHECK_HEADERS([dirent.h errno.h fcntl.h io.h limits.h stat.h stdlib.h string.h])
 AC_CHECK_HEADERS([time.h types.h unistd.h])
 AC_CHECK_HEADERS([sys/dir.h sys/stat.h sys/times.h sys/types.h sys/wait.h])
 
@@ -559,7 +567,7 @@ int main(void) {
 }
 ])],[regcomp_works=yes],[regcomp_works=no],[AC_DEFINE(CHECK_REGCOMP)])
 AC_MSG_RESULT($regcomp_works)
-if test yes != "$regcomp_works"; then
+if test no = "$regcomp_works"; then
 	AC_MSG_ERROR([regcomp() on this system is broken.])
 fi
 have_regcomp=yes
@@ -576,6 +584,59 @@ AC_CHECK_FUNCS(scandir)
 
 AC_CHECK_FUNCS(fork waitpid execv pipe,[enable_xcmd=yes],[enable_xcmd=no])
 AM_CONDITIONAL([ENABLE_XCMD], [test "xyes" = "x$enable_xcmd"])
+
+AC_ARG_ENABLE([xml],
+	[AS_HELP_STRING([--disable-xml],
+		[disable xml support])])
+
+AH_TEMPLATE([HAVE_LIBXML],
+	[Define this value if libxml is available.])
+dnl About the condition of version
+dnl see https://mail.gnome.org/archives/xml/2010-February/msg00008.html
+AS_IF([test "x$enable_xml" != "xno"], [
+	PKG_CHECK_MODULES(LIBXML, [libxml-2.0 >= 2.7.7],
+			       [have_libxml=yes
+			       AC_DEFINE(HAVE_LIBXML)],
+			       [AS_IF([test "x$enable_xml" = "xyes"], [
+			           AC_MSG_ERROR([libxml2 not found])])])
+])
+AM_CONDITIONAL(HAVE_LIBXML, test "x$have_libxml" = xyes)
+
+AC_ARG_ENABLE([json],
+	[AS_HELP_STRING([--disable-json],
+		[disable json support])])
+
+AH_TEMPLATE([HAVE_JANSSON],
+	[Define this value if jansson is available.])
+dnl This enforces explicit feature usage regardless of the libraries
+dnl available on the build system. This avoids automagic dependencies which
+dnl can cause issues for source-based distros [1].
+dnl [1]: https://wiki.gentoo.org/wiki/Project:Quality_Assurance/Automagic_dependencies
+AS_IF([test "x$enable_json" != "xno"], [
+	PKG_CHECK_MODULES(JANSSON, jansson,
+			       [have_jansson=yes
+			       AC_DEFINE(HAVE_JANSSON)],
+			       [AS_IF([test "x$enable_json" = "xyes"], [
+			           AC_MSG_ERROR([jansson not found])])])
+])
+AM_CONDITIONAL(HAVE_JANSSON, test "x$have_jansson" = xyes)
+
+AC_ARG_ENABLE([yaml],
+	[AS_HELP_STRING([--disable-yaml],
+		[disable yaml support])])
+
+AH_TEMPLATE([HAVE_LIBYAML],
+	[Define this value if libyaml is available.])
+AS_IF([test "x$enable_yaml" != "xno"], [
+	PKG_CHECK_MODULES(LIBYAML, yaml-0.1,
+			       [have_libyaml=yes
+			       AC_DEFINE(HAVE_LIBYAML)],
+			       [AS_IF([test "x$enable_yaml" = "xyes"], [
+			           AC_MSG_ERROR([libyaml not found])])])
+])
+AM_CONDITIONAL(HAVE_LIBYAML, test "x$have_libyaml" = xyes)
+
+
 
 # Checks for missing prototypes
 # -----------------------------
@@ -641,7 +702,8 @@ fi
 AC_CHECK_FUNCS([mblen], [], [HAVE_MBLEN=1], [])
 
 AC_CONFIG_FILES([Makefile
-		 ctags.1])
+		 man/ctags.1.rst
+		 ])
 
 AC_OUTPUT
 

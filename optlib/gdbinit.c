@@ -8,8 +8,14 @@
 
 static void initializeGdbinitParser (const langType language)
 {
-	enableRegexKind (language, 'D', FALSE);
-	enableRegexKind (language, 'l', FALSE);
+	{
+		kindDefinition *kdef = getLanguageKindForLetter (language, 'D');
+		enableKind (kdef, false);
+	}
+	{
+		kindDefinition *kdef = getLanguageKindForLetter (language, 'l');
+		enableKind (kdef, false);
+	}
 }
 
 extern parserDefinition* GdbinitParser (void)
@@ -28,42 +34,38 @@ extern parserDefinition* GdbinitParser (void)
 		NULL
 	};
 
-	static const tagRegexTable const GdbinitTagRegexTable [] = {
+	static kindDefinition GdbinitKindTable [] = {
+		{ true, 'd', "definition", "definitions" },
+		{ true, 'D', "document", "documents" },
+		{ true, 't', "toplevelVariable", "toplevel variables" },
+		{ true, 'l', "localVariable", "local variables" },
+	};
+	static tagRegexTable GdbinitTagRegexTable [] = {
 		{"^#.*", "",
 		"", "{exclusive}"},
 		{"^define[[:space:]]+([^[:space:]]+)$", "\\1",
-		"d,definition", NULL},
+		"d", NULL},
 		{"^document[[:space:]]+([^[:space:]]+)$", "\\1",
-		"D,document", NULL},
+		"D", NULL},
 		{"^set[[:space:]]+\\$([a-zA-Z0-9_]+)[[:space:]]*=", "\\1",
-		"t,toplevelVariable", NULL},
+		"t", NULL},
 		{"^[[:space:]]+set[[:space:]]+\\$([a-zA-Z0-9_]+)[[:space:]]*=", "\\1",
-		"l,localVariable", NULL},
+		"l", NULL},
 	};
 
 
 	parserDefinition* const def = parserNew ("gdbinit");
 
-	def->enabled       = FALSE;
+	def->enabled       = false;
 	def->extensions    = extensions;
 	def->patterns      = patterns;
 	def->aliases       = aliases;
 	def->method        = METHOD_NOT_CRAFTED|METHOD_REGEX;
+	def->kindTable = GdbinitKindTable;
+	def->kindCount = ARRAY_SIZE(GdbinitKindTable);
 	def->tagRegexTable = GdbinitTagRegexTable;
 	def->tagRegexCount = ARRAY_SIZE(GdbinitTagRegexTable);
 	def->initialize    = initializeGdbinitParser;
 
 	return def;
 }
-
-/*
- * Editor modelines  -  https://www.wireshark.org/tools/modelines.html
- *
- * Local variables:
- * c-basic-offset: 4
- * tab-width: 4
- * End:
- *
- * vi: set shiftwidth=4 tabstop=4:
- * :indentSize=4:tabSize=4:
- */

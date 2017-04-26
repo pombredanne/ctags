@@ -1,5 +1,3 @@
-.. _semifuzz:
-
 Semi-fuzz(*Fuzz*) testing
 ---------------------------------------------------------------------
 
@@ -54,4 +52,4 @@ following parameters:
 
 As the same as units target, this semi-fuzz test target also calls
 *misc/units shrink* when an test case is failed. See "*Units* test facility"
-about the shrinked result.
+about the shrunk result.

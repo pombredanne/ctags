@@ -20,6 +20,7 @@
 #include "debug.h"
 #include "entry.h"
 #include "read.h"
+#include "selectors.h"
 #include "vstring.h"
 
 #define SKIPSPACE(ch) while (isspace((int)*ch)) \
@@ -34,12 +35,12 @@ typedef enum {
 	KIND_COUNT
 } rKind;
 
-static kindOption RKinds[KIND_COUNT] = {
-	{TRUE, 'f', "function", "functions"},
-	{TRUE, 'l', "library", "libraries"},
-	{TRUE, 's', "source", "sources"},
-	{TRUE, 'g', "globalVar", "global variables"},
-	{TRUE, 'v', "functionVar", "function variables"},
+static kindDefinition RKinds[KIND_COUNT] = {
+	{true, 'f', "function", "functions"},
+	{true, 'l', "library", "libraries"},
+	{true, 's', "source", "sources"},
+	{true, 'g', "globalVar", "global variables"},
+	{true, 'v', "functionVar", "function variables"},
 };
 
 static void makeRTag (const vString * const name, rKind kind)
@@ -104,7 +105,6 @@ static void createRTags (void)
 						vStringPut (name, (int) *cp);
 						cp++;
 					}
-					vStringTerminate (name);
 
 					/* if the string really exists, make a tag of it */
 					if (vStringLength (name) > 0)
@@ -153,7 +153,6 @@ static void createRTags (void)
 					{
 						/* it's a function: ident <- function(args) */
 						cp += 8;
-						vStringTerminate (name);
 						/* if the string really exists, make a tag of it */
 						if (vStringLength (name) > 0)
 							makeRTag (name, K_FUNCTION);
@@ -165,7 +164,6 @@ static void createRTags (void)
 					else
 					{
 						/* it's a variable: ident <- value */
-						vStringTerminate (name);
 						/* if the string really exists, make a tag of it */
 						if (vStringLength (name) > 0)
 						{
@@ -205,11 +203,12 @@ extern parserDefinition *RParser (void)
 	 */
 	static const char *const extensions[] = { "r", "R", "s", "q", NULL };
 	parserDefinition *const def = parserNew ("R");
+	static selectLanguage selectors[] = { selectByArrowOfR,
+					      NULL };
 	def->extensions = extensions;
-	def->kinds = RKinds;
+	def->kindTable = RKinds;
 	def->kindCount = KIND_COUNT;
 	def->parser = createRTags;
+	def->selectLanguage = selectors;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4 noexpandtab: */

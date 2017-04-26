@@ -10,15 +10,26 @@
 #ifndef CTAGS_MAIN_SELECTORS_H
 #define CTAGS_MAIN_SELECTORS_H
 
-#include <stdio.h>
+#include "types.h"
 
 const char *
-selectByPickingPerlVersion (FILE *);
+selectByPickingPerlVersion (MIO *, langType *, unsigned int);
 
 const char *
-selectByObjectiveCAndMatLabKeywords (FILE *);
+selectByObjectiveCAndMatLabKeywords (MIO *, langType *, unsigned int);
 
 const char *
-selectByObjectiveCKeywords(FILE *);
+selectByObjectiveCKeywords(MIO *, langType *, unsigned int);
+
+const char *
+selectByArrowOfR (MIO *, langType *, unsigned int);
+
+const char *
+selectByRexxCommentAndDosbatchLabelPrefix (MIO *, langType *, unsigned int);
+
+#ifdef HAVE_LIBXML
+const char *
+selectByXpathFileSpec (MIO *input, langType *candidates, unsigned int nCandidates);
+#endif
 
 #endif

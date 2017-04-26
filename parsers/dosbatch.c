@@ -15,8 +15,9 @@
 #include <string.h>
 #include "parse.h"
 #include "routines.h"
+#include "selectors.h"
 
-static const tagRegexTable const dosTagRegexTable [] = {
+static tagRegexTable dosTagRegexTable [] = {
 	{"^:([A-Za-z_0-9]+)", "\\1",
 	 "l,label,labels", NULL},
 	{"set[ \t]+([A-Za-z_0-9]+)[ \t]*=", "\\1",
@@ -31,11 +32,13 @@ extern parserDefinition* DosBatchParser (void)
 {
 	static const char *const extensions [] = { "bat", "cmd", NULL };
 	parserDefinition* const def = parserNew ("DosBatch");
+	static selectLanguage selectors[] = { selectByRexxCommentAndDosbatchLabelPrefix,
+					      NULL };
+
 	def->extensions = extensions;
 	def->tagRegexTable = dosTagRegexTable;
 	def->tagRegexCount = ARRAY_SIZE (dosTagRegexTable);
 	def->method     = METHOD_NOT_CRAFTED|METHOD_REGEX;
+	def->selectLanguage = selectors;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

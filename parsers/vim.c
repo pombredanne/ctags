@@ -1,27 +1,26 @@
 /*
-*	Copyright (c) 2000-2003, Darren Hiebert
+*   Copyright (c) 2000-2003, Darren Hiebert
 *
-*	This source code is released for free distribution under the terms of the
-*	GNU General Public License version 2 or (at your option) any later version.
+*   This source code is released for free distribution under the terms of the
+*   GNU General Public License version 2 or (at your option) any later version.
 *
-*	Thanks are due to Jay Glanville for significant improvements.
+*   Thanks are due to Jay Glanville for significant improvements.
 *
-*	This module contains functions for generating tags for user-defined
-*	functions for the Vim editor.
+*   This module contains functions for generating tags for user-defined
+*   functions for the Vim editor.
 */
 
 /*
-*	INCLUDE FILES
-*/
+ *  INCLUDE FILES
+ */
 #include "general.h"  /* must always come first */
 
 #include <string.h>
-#include <setjmp.h>
 #ifdef DEBUG
 #include <stdio.h>
 #endif
 
-
+#include "entry.h"
 #include "parse.h"
 #include "read.h"
 #include "routines.h"
@@ -29,18 +28,18 @@
 
 #if 0
 typedef struct sLineInfo {
-	tokenType	type;
-	keywordId	keyword;
-	vString *	string;
-	vString *	scope;
+	tokenType type;
+	keywordId keyword;
+	vString *string;
+	vString *scope;
 	unsigned long lineNumber;
-	fpos_t filePosition;
+	MIOPos filePosition;
 } lineInfo;
 #endif
 
 /*
-*	DATA DEFINITIONS
-*/
+ * DATA DEFINITIONS
+ */
 typedef enum {
 	K_AUGROUP,
 	K_COMMAND,
@@ -50,27 +49,27 @@ typedef enum {
 	K_FILENAME
 } vimKind;
 
-static kindOption VimKinds [] = {
-	{ TRUE,  'a', "augroup",  "autocommand groups" },
-	{ TRUE,  'c', "command",  "user-defined commands" },
-	{ TRUE,  'f', "function", "function definitions" },
-	{ TRUE,  'm', "map",      "maps" },
-	{ TRUE,  'v', "variable", "variable definitions" },
-	{ TRUE,  'n', "filename", "vimball filename" },
+static kindDefinition VimKinds [] = {
+	{ true,  'a', "augroup",  "autocommand groups" },
+	{ true,  'c', "command",  "user-defined commands" },
+	{ true,  'f', "function", "function definitions" },
+	{ true,  'm', "map",      "maps" },
+	{ true,  'v', "variable", "variable definitions" },
+	{ true,  'n', "filename", "vimball filename" },
 };
 
 /*
- *	 DATA DECLARATIONS
+ *  DATA DECLARATIONS
  */
 
 #if 0
 typedef enum eException {
-	ExceptionNone, ExceptionEOF 
+	ExceptionNone, ExceptionEOF
 } exception_t;
 #endif
 
 /*
- *	DATA DEFINITIONS
+ *  DATA DEFINITIONS
  */
 
 #if 0
@@ -78,22 +77,22 @@ static jmp_buf Exception;
 #endif
 
 /*
- *	FUNCTION DEFINITIONS
+ *  FUNCTION DEFINITIONS
  */
 
-static boolean parseVimLine (const unsigned char *line, int infunction);
+static bool parseVimLine (const unsigned char *line, int infunction);
 
 /* This function takes a char pointer, tries to find a scope separator in the
  * string, and if it does, returns a pointer to the character after the colon,
  * and the character defining the scope.
  * If a colon is not found, it returns the original pointer.
  */
-static const unsigned char* skipPrefix (const unsigned char* name, int *scope)
+static const unsigned char *skipPrefix (const unsigned char *name, int *scope)
 {
-	const unsigned char* result = name;
+	const unsigned char *result = name;
 	int counter;
 	size_t length;
-	length = strlen((const char*)name);
+	length = strlen ((const char *) name);
 	if (scope != NULL)
 		*scope = '\0';
 	if (length > 3 && name[1] == ':')
@@ -102,7 +101,7 @@ static const unsigned char* skipPrefix (const unsigned char* name, int *scope)
 			*scope = *name;
 		result = name + 2;
 	}
-	else if (length > 5 && strncasecmp ((const char*) name, "<SID>", (size_t) 5) == 0)
+	else if (length > 5 && strncasecmp ((const char *) name, "<SID>", (size_t) 5) == 0)
 	{
 		if (scope != NULL)
 			*scope = *name;
@@ -116,7 +115,7 @@ static const unsigned char* skipPrefix (const unsigned char* name, int *scope)
 		counter = 0;
 		do
 		{
-			switch ( name[counter] )
+			switch (name[counter])
 			{
 				case '.':
 					/* Set the scope to d - Dictionary */
@@ -128,23 +127,23 @@ static const unsigned char* skipPrefix (const unsigned char* name, int *scope)
 					break;
 			}
 			++counter;
-		} while (isalnum ((int) name[counter]) ||  
-				name[counter] == '_'		   ||  
-				name[counter] == '.'		   ||  
+		} while (isalnum ((int) name[counter]) ||
+				name[counter] == '_'           ||
+				name[counter] == '.'           ||
 				name[counter] == '#'
 				);
 	}
 	return result;
 }
 
-static boolean isWordChar(const unsigned char c)
+static bool isWordChar (const unsigned char c)
 {
 	return (isalnum (c) || c == '_');
 }
 
 /* checks if a word at the start of `p` matches at least `min_len` first
  * characters from `word` */
-static boolean wordMatchLen(const unsigned char *p, const char *const word, size_t min_len)
+static bool wordMatchLen (const unsigned char *p, const char *const word, size_t min_len)
 {
 	const unsigned char *w = (const unsigned char *) word;
 	size_t n = 0;
@@ -157,45 +156,45 @@ static boolean wordMatchLen(const unsigned char *p, const char *const word, size
 	}
 
 	if (isWordChar (*p))
-		return FALSE;
+		return false;
 
 	return n >= min_len;
 }
 
-static const unsigned char *skipWord(const unsigned char *p)
+static const unsigned char *skipWord (const unsigned char *p)
 {
 	while (*p && isWordChar (*p))
 		p++;
 	return p;
 }
 
-static boolean isMap (const unsigned char* line)
+static bool isMap (const unsigned char *line)
 {
 	/*
 	 * There are many different short cuts for specifying a map.
 	 * This routine should capture all the permutations.
 	 */
-	return (wordMatchLen(line, "map", 3) ||
-			wordMatchLen(line, "nmap", 2) ||
-			wordMatchLen(line, "vmap", 2) ||
-			wordMatchLen(line, "xmap", 2) ||
-			wordMatchLen(line, "smap", 4) ||
-			wordMatchLen(line, "omap", 2) ||
-			wordMatchLen(line, "imap", 2) ||
-			wordMatchLen(line, "lmap", 2) ||
-			wordMatchLen(line, "cmap", 2) ||
-			wordMatchLen(line, "noremap", 2) ||
-			wordMatchLen(line, "nnoremap", 2) ||
-			wordMatchLen(line, "vnoremap", 2) ||
-			wordMatchLen(line, "xnoremap", 2) ||
-			wordMatchLen(line, "snoremap", 4) ||
-			wordMatchLen(line, "onoremap", 3) ||
-			wordMatchLen(line, "inoremap", 3) ||
-			wordMatchLen(line, "lnoremap", 2) ||
-			wordMatchLen(line, "cnoremap", 3));
+	return (wordMatchLen (line, "map", 3) ||
+			wordMatchLen (line, "nmap", 2) ||
+			wordMatchLen (line, "vmap", 2) ||
+			wordMatchLen (line, "xmap", 2) ||
+			wordMatchLen (line, "smap", 4) ||
+			wordMatchLen (line, "omap", 2) ||
+			wordMatchLen (line, "imap", 2) ||
+			wordMatchLen (line, "lmap", 2) ||
+			wordMatchLen (line, "cmap", 2) ||
+			wordMatchLen (line, "noremap", 2) ||
+			wordMatchLen (line, "nnoremap", 2) ||
+			wordMatchLen (line, "vnoremap", 2) ||
+			wordMatchLen (line, "xnoremap", 2) ||
+			wordMatchLen (line, "snoremap", 4) ||
+			wordMatchLen (line, "onoremap", 3) ||
+			wordMatchLen (line, "inoremap", 3) ||
+			wordMatchLen (line, "lnoremap", 2) ||
+			wordMatchLen (line, "cnoremap", 3));
 }
 
-static const unsigned char * readVimLine (void)
+static const unsigned char *readVimLine (void)
 {
 	const unsigned char *line;
 
@@ -213,7 +212,7 @@ static const unsigned char * readVimLine (void)
 	return line;
 }
 
-static const unsigned char * readVimballLine (void)
+static const unsigned char *readVimballLine (void)
 {
 	const unsigned char *line;
 
@@ -228,11 +227,12 @@ static const unsigned char * readVimballLine (void)
 static void parseFunction (const unsigned char *line)
 {
 	vString *name = vStringNew ();
-	/* boolean inFunction = FALSE; */
+	/* bool inFunction = false; */
 	int scope;
 	const unsigned char *cp = line;
+	int index = CORK_NIL;
 
-	if ((int) *cp == '!')
+	if (*cp == '!')
 		++cp;
 	if (isspace ((int) *cp))
 	{
@@ -242,19 +242,22 @@ static void parseFunction (const unsigned char *line)
 		if (*cp)
 		{
 			cp = skipPrefix (cp, &scope);
-			if (isupper ((int) *cp)  ||  
+			if (isupper ((int) *cp)  ||
 					scope == 's'  ||  /* script scope */
 					scope == '<'  ||  /* script scope */
 					scope == 'd'  ||  /* dictionary */
-					scope == 'a')	  /* autoload */
+					scope == 'a')     /* autoload */
 			{
+				char prefix[3] = { [0] = (char)scope, [1] = ':', [2] = '\0' };
+				if (scope == 's')
+					vStringCatS (name, prefix);
+
 				do
 				{
 					vStringPut (name, (int) *cp);
 					++cp;
-				} while (isalnum ((int) *cp) ||  *cp == '_' ||	*cp == '.' ||  *cp == '#');
-				vStringTerminate (name);
-				makeSimpleTag (name, VimKinds, K_FUNCTION);
+				} while (isalnum ((int) *cp) || *cp == '_' || *cp == '.' || *cp == '#');
+				index = makeSimpleTag (name, VimKinds, K_FUNCTION);
 				vStringClear (name);
 			}
 		}
@@ -264,9 +267,17 @@ static void parseFunction (const unsigned char *line)
 	while ((line = readVimLine ()) != NULL)
 	{
 		if (wordMatchLen (line, "endfunction", 4))
+		{
+			tagEntryInfo *e;
+			if (index != CORK_NIL)
+			{
+				e = getEntryInCorkQueue (index);
+				e->extensionFields.endLine = getInputLineNumber ();
+			}
 			break;
+		}
 
-		parseVimLine(line, TRUE);
+		parseVimLine (line, true);
 	}
 	vStringDelete (name);
 }
@@ -280,7 +291,7 @@ static void parseAutogroup (const unsigned char *line)
 	if (isspace ((int) *cp))
 	{
 		while (*cp && isspace ((int) *cp))
-			++cp; 
+			++cp;
 
 		if (*cp)
 		{
@@ -290,7 +301,6 @@ static void parseAutogroup (const unsigned char *line)
 			if (end > cp && strncasecmp ((const char *) cp, "end", end - cp) != 0)
 			{
 				vStringNCatS (name, (const char *) cp, end - cp);
-				vStringTerminate (name);
 				makeSimpleTag (name, VimKinds, K_AUGROUP);
 				vStringClear (name);
 			}
@@ -299,22 +309,22 @@ static void parseAutogroup (const unsigned char *line)
 	vStringDelete (name);
 }
 
-static boolean parseCommand (const unsigned char *line)
+static bool parseCommand (const unsigned char *line)
 {
 	vString *name = vStringNew ();
-	boolean cmdProcessed = TRUE;
+	bool cmdProcessed = true;
 
-	/* 
-	 * Found a user-defined command 
+	/*
+	 * Found a user-defined command
 	 *
-	 * They can have many options preceeded by a dash
+	 * They can have many options preceded by a dash
 	 * command! -nargs=+ -complete Select  :call s:DB_execSql("select " . <q-args>)
-	 * The name of the command should be the first word not preceeded by a dash
+	 * The name of the command should be the first word not preceded by a dash
 	 *
 	 */
 	const unsigned char *cp = line;
 
-	if ( cp && ( (int) *cp == '\\' ) ) 
+	if (cp && (*cp == '\\'))
 	{
 		/*
 		 * We are recursively calling this function is the command
@@ -324,53 +334,53 @@ static boolean parseCommand (const unsigned char *line)
 		 * to indicate the previous line is continuing.
 		 *
 		 * com -nargs=1 -bang -complete=customlist,EditFileComplete
-		 * 			\ EditFile edit<bang> <args>
+		 *          \ EditFile edit<bang> <args>
 		 *
 		 * If the following lines do not have a line continuation
 		 * the command must not be spanning multiple lines and should
 		 * be synatically incorrect.
 		 */
-		if ((int) *cp == '\\')
+		if (*cp == '\\')
 			++cp;
 
 		while (*cp && isspace ((int) *cp))
-			++cp; 
+			++cp;
 	}
-	else if ( line && wordMatchLen (cp, "command", 3) )
+	else if (line && wordMatchLen (cp, "command", 3))
 	{
 		cp = skipWord (cp);
 
-		if ((int) *cp == '!')
+		if (*cp == '!')
 			++cp;
 
-		if ((int) *cp != ' ')
+		if (*cp != ' ')
 		{
 			/*
-			 * :command must be followed by a space.  If it is not, it is 
+			 * :command must be followed by a space.  If it is not, it is
 			 * not a valid command.
 			 * Treat the line as processed and continue.
 			 */
-			cmdProcessed = TRUE;
+			cmdProcessed = true;
 			goto cleanUp;
 		}
 
 		while (*cp && isspace ((int) *cp))
-			++cp; 
-	} 
-	else 
+			++cp;
+	}
+	else
 	{
 		/*
 		 * We are recursively calling this function.  If it does not start
 		 * with "com" or a line continuation character, we have moved off
 		 * the command line and should let the other routines parse this file.
 		 */
-		cmdProcessed = FALSE;
+		cmdProcessed = false;
 		goto cleanUp;
 	}
 
 	/*
 	 * Strip off any spaces and options which are part of the command.
-	 * These should preceed the command name.
+	 * These should precede the command name.
 	 */
 	do
 	{
@@ -380,32 +390,32 @@ static boolean parseCommand (const unsigned char *line)
 		}
 		else if (*cp == '-')
 		{
-			/* 
+			/*
 			 * Read until the next space which separates options or the name
 			 */
 			while (*cp && !isspace ((int) *cp))
-				++cp; 
+				++cp;
 		}
 		else if (!isalnum ((int) *cp))
 		{
 			/*
 			 * Broken syntax: throw away this line
 			 */
-			cmdProcessed = TRUE;
+			cmdProcessed = true;
 			goto cleanUp;
 		}
-	} while ( *cp &&  !isalnum ((int) *cp) );
+	} while (*cp &&  !isalnum ((int) *cp));
 
-	if ( ! *cp )
+	if (!*cp)
 	{
 		/*
 		 * We have reached the end of the line without finding the command name.
 		 * Read the next line and continue processing it as a command.
 		 */
 		if ((line = readVimLine ()) != NULL)
-			cmdProcessed = parseCommand(line);
+			cmdProcessed = parseCommand (line);
 		else
-			cmdProcessed = FALSE;
+			cmdProcessed = false;
 		goto cleanUp;
 	}
 
@@ -413,9 +423,8 @@ static boolean parseCommand (const unsigned char *line)
 	{
 		vStringPut (name, (int) *cp);
 		++cp;
-	} while (isalnum ((int) *cp)  ||  *cp == '_');
+	} while (isalnum ((int) *cp) || *cp == '_');
 
-	vStringTerminate (name);
 	makeSimpleTag (name, VimKinds, K_COMMAND);
 	vStringClear (name);
 
@@ -437,26 +446,26 @@ static void parseLet (const unsigned char *line, int infunction)
 		while (*cp && isspace ((int) *cp))
 			++cp;
 
-		/* 
+		/*
 		 * Ignore lets which set:
 		 *    &  - local buffer vim settings
 		 *    @  - registers
 		 *    [  - Lists or Dictionaries
 		 */
-		if (!*cp || *cp == '&' || *cp == '@' || *cp == '[' )
+		if (!*cp || *cp == '&' || *cp == '@' || *cp == '[')
 			goto cleanUp;
 
-		/* 
+		/*
 		 * Ignore vim variables which are read only
 		 *    v: - Vim variables.
 		 */
 		np = cp;
 		++np;
-		if ((int) *cp == 'v' && (int) *np == ':' )
+		if (*cp == 'v' && *np == ':')
 			goto cleanUp;
 
 		/* Skip non-global vars in functions */
-		if (infunction && (int) *cp != 'g')
+		if (infunction && (*np != ':' || *cp != 'g'))
 			goto cleanUp;
 
 		/* deal with spaces, $, @ and & */
@@ -474,8 +483,7 @@ static void parseLet (const unsigned char *line, int infunction)
 
 			vStringPut (name, (int) *cp);
 			++cp;
-		} while (isalnum ((int) *cp)  ||  *cp == '_'  ||  *cp == '#'  ||  *cp == ':'  ||  *cp == '$');
-		vStringTerminate (name);
+		} while (isalnum ((int) *cp) || *cp == '_' || *cp == '#' || *cp == ':' || *cp == '$');
 		makeSimpleTag (name, VimKinds, K_VARIABLE);
 		vStringClear (name);
 	}
@@ -484,25 +492,26 @@ cleanUp:
 	vStringDelete (name);
 }
 
-static boolean parseMap (const unsigned char *line)
+static bool parseMap (const unsigned char *line)
 {
 	vString *name = vStringNew ();
 	const unsigned char *cp = line;
 
-	if ((int) *cp == '!')
+	if (*cp == '!')
 		++cp;
 
 	/*
 	 * Maps follow this basic format
-	 *     map 
-     *    nnoremap <silent> <F8> :Tlist<CR>
-     *    map <unique> <Leader>scdt <Plug>GetColumnDataType
-     *    inoremap ,,, <esc>diwi<<esc>pa><cr></<esc>pa><esc>kA
-     *    inoremap <buffer> ( <C-R>=PreviewFunctionSignature()<LF> 
+	 *    map
+	 *    nnoremap <silent> <F8> :Tlist<CR>
+	 *    map <unique> <Leader>scdt <Plug>GetColumnDataType
+	 *    inoremap ,,, <esc>diwi<<esc>pa><cr></<esc>pa><esc>kA
+	 *    inoremap <buffer> ( <C-R>=PreviewFunctionSignature()<LF>
 	 *
 	 * The Vim help shows the various special arguments available to a map:
-	 * 1.2 SPECIAL ARGUMENTS					*:map-arguments*
-     *    <buffer>
+	 * 1.2 SPECIAL ARGUMENTS                    *:map-arguments*
+	 *    <buffer>
+	 *    <nowait>
 	 *    <silent>
 	 *    <script>
 	 *    <unique>
@@ -512,38 +521,39 @@ static boolean parseMap (const unsigned char *line)
 	 * Strip the special arguments from the map command, this should leave
 	 * the map name which we will use as the "name".
 	 */
-	
+
 	do
 	{
 		while (*cp && isspace ((int) *cp))
-			++cp; 
+			++cp;
 
-		if (strncmp ((const char*) cp, "<Leader>", (size_t) 8) == 0)
+		if (strncmp ((const char *) cp, "<Leader>", (size_t) 8) == 0)
 			break;
-	
+
 		if (
-				strncmp ((const char*) cp, "<buffer>", (size_t) 8) == 0 ||
-				strncmp ((const char*) cp, "<silent>", (size_t) 8) == 0 ||
-				strncmp ((const char*) cp, "<script>", (size_t) 8) == 0 ||
-				strncmp ((const char*) cp, "<unique>", (size_t) 8) == 0
+				strncmp ((const char *) cp, "<buffer>", (size_t) 8) == 0 ||
+				strncmp ((const char *) cp, "<nowait>", (size_t) 8) == 0 ||
+				strncmp ((const char *) cp, "<silent>", (size_t) 8) == 0 ||
+				strncmp ((const char *) cp, "<script>", (size_t) 8) == 0 ||
+				strncmp ((const char *) cp, "<unique>", (size_t) 8) == 0
 		   )
 		{
 			cp += 8;
 			continue;
 		}
-	
-		if (strncmp ((const char*) cp, "<expr>", (size_t) 6) == 0)
+
+		if (strncmp ((const char *) cp, "<expr>", (size_t) 6) == 0)
 		{
 			cp += 6;
 			continue;
 		}
-	
-		if (strncmp ((const char*) cp, "<special>", (size_t) 9) == 0)
+
+		if (strncmp ((const char *) cp, "<special>", (size_t) 9) == 0)
 		{
 			cp += 9;
 			continue;
 		}
-	
+
 		break;
 	} while (*cp);
 
@@ -553,43 +563,42 @@ static boolean parseMap (const unsigned char *line)
 		++cp;
 	} while (*cp && *cp != ' ');
 
-	vStringTerminate (name);
 	makeSimpleTag (name, VimKinds, K_MAP);
 	vStringClear (name);
 
 	vStringDelete (name);
 
-	return TRUE;
+	return true;
 }
 
-static boolean parseVimLine (const unsigned char *line, int infunction)
+static bool parseVimLine (const unsigned char *line, int infunction)
 {
-	boolean readNextLine = TRUE;
+	bool readNextLine = true;
 
 	if (wordMatchLen (line, "command", 3))
 	{
-		readNextLine = parseCommand(line);
-		/* TODO - Handle parseCommand returning FALSE */
+		readNextLine = parseCommand (line);
+		/* TODO - Handle parseCommand returning false */
 	}
 
-	else if (isMap(line))
+	else if (isMap (line))
 	{
-		parseMap(skipWord(line));
+		parseMap (skipWord (line));
 	}
 
 	else if (wordMatchLen (line, "function", 2))
 	{
-		parseFunction(skipWord(line));
+		parseFunction (skipWord (line));
 	}
 
-	else if	(wordMatchLen (line, "augroup", 3))
+	else if (wordMatchLen (line, "augroup", 3))
 	{
-		parseAutogroup(skipWord(line));
+		parseAutogroup (skipWord (line));
 	}
 
 	else if (wordMatchLen (line, "let", 3))
 	{
-		parseLet(skipWord(line), infunction);
+		parseLet (skipWord (line), infunction);
 	}
 
 	return readNextLine;
@@ -597,14 +606,14 @@ static boolean parseVimLine (const unsigned char *line, int infunction)
 
 static void parseVimFile (const unsigned char *line)
 {
-	boolean readNextLine = TRUE;
+	bool readNextLine = true;
 
 	while (line != NULL)
 	{
-		readNextLine = parseVimLine(line, FALSE);
+		readNextLine = parseVimLine (line, false);
 
-		if ( readNextLine )
-			line = readVimLine();
+		if (readNextLine)
+			line = readVimLine ();
 
 	}
 }
@@ -631,18 +640,15 @@ static void parseVimBallFile (const unsigned char *line)
 	 */
 
 	/* Next line should be "finish" */
-	line = readVimLine();
-	if (line == NULL)
-	{
-		return;
-	}
+	line = readVimLine ();
+
 	while (line != NULL)
 	{
 		/* Next line should be a filename */
-		line = readVimLine();
+		line = readVimLine ();
 		if (line == NULL)
 		{
-			return;
+			goto cleanUp;
 		}
 		else
 		{
@@ -651,35 +657,35 @@ static void parseVimBallFile (const unsigned char *line)
 			{
 				vStringPut (fname, (int) *cp);
 				++cp;
-			} while (isalnum ((int) *cp) ||  *cp == '.' ||  *cp == '/' ||	*cp == '\\');
-			vStringTerminate (fname);
+			} while (isalnum ((int) *cp) || *cp == '.' || *cp == '/' || *cp == '\\');
 			makeSimpleTag (fname, VimKinds, K_FILENAME);
 			vStringClear (fname);
 		}
 
 		file_line_count = 0;
 		/* Next line should be the line count of the file */
-		line = readVimLine();
+		line = readVimLine ();
 		if (line == NULL)
 		{
-			return;
+			goto cleanUp;
 		}
 		else
 		{
-			file_line_count = atoi( (const char *) line );
+			file_line_count = atoi ((const char *) line);
 		}
 
 		/* Read all lines of the file */
-		for ( i=0; i<file_line_count; i++ )
+		for (i = 0; i < file_line_count; i++)
 		{
-			line = readVimballLine();
+			line = readVimballLine ();
 			if (line == NULL)
 			{
-				return;
+				goto cleanUp;
 			}
 		}
 	}
 
+cleanUp:
 	vStringDelete (fname);
 }
 
@@ -688,14 +694,14 @@ static void findVimTags (void)
 	const unsigned char *line;
 	/* TODO - change this into a structure */
 
-	line = readVimLine();
+	line = readVimLine ();
 
-    if (line == NULL)
-    {
-            return;
-    }
+	if (line == NULL)
+	{
+			return;
+	}
 
-	if ( strncmp ((const char*) line, "UseVimball", (size_t) 10) == 0 )
+	if (strncmp ((const char *) line, "UseVimball", (size_t) 10) == 0)
 	{
 		parseVimBallFile (line);
 	}
@@ -705,18 +711,17 @@ static void findVimTags (void)
 	}
 }
 
-extern parserDefinition* VimParser (void)
+extern parserDefinition *VimParser (void)
 {
 	static const char *const extensions [] = { "vim", "vba", NULL };
 	static const char *const patterns [] = { "vimrc", "[._]vimrc", "gvimrc",
 		"[._]gvimrc", NULL };
-	parserDefinition* def = parserNew ("Vim");
-	def->kinds		= VimKinds;
-	def->kindCount	= ARRAY_SIZE (VimKinds);
+	parserDefinition *def = parserNew ("Vim");
+	def->kindTable      = VimKinds;
+	def->kindCount  = ARRAY_SIZE (VimKinds);
 	def->extensions = extensions;
 	def->patterns   = patterns;
-	def->parser		= findVimTags;
+	def->parser     = findVimTags;
+	def->useCork    = true;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4 noexpandtab: */

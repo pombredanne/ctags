@@ -39,17 +39,17 @@ enum perl6Kind {
     K_TOKEN,
 };
 
-static kindOption perl6Kinds[] = {
-    [K_CLASS]       = { TRUE,  'c', "class",      "classes" },
-    [K_GRAMMAR]     = { TRUE,  'g', "grammar",    "grammars" },
-    [K_METHOD]      = { TRUE,  'm', "method",     "methods" },
-    [K_MODULE]      = { TRUE,  'o', "module",     "modules" },
-    [K_PACKAGE]     = { TRUE,  'p', "package",    "packages" },
-    [K_ROLE]        = { TRUE,  'r', "role",       "roles" },
-    [K_RULE]        = { TRUE,  'u', "rule",       "rules" },
-    [K_SUBMETHOD]   = { TRUE,  'b', "submethod",  "submethods" },
-    [K_SUBROUTINE]  = { TRUE,  's', "subroutine", "subroutines" },
-    [K_TOKEN]       = { TRUE,  't', "token",      "tokens" },
+static kindDefinition perl6Kinds[] = {
+    [K_CLASS]       = { true,  'c', "class",      "classes" },
+    [K_GRAMMAR]     = { true,  'g', "grammar",    "grammars" },
+    [K_METHOD]      = { true,  'm', "method",     "methods" },
+    [K_MODULE]      = { true,  'o', "module",     "modules" },
+    [K_PACKAGE]     = { true,  'p', "package",    "packages" },
+    [K_ROLE]        = { true,  'r', "role",       "roles" },
+    [K_RULE]        = { true,  'u', "rule",       "rules" },
+    [K_SUBMETHOD]   = { true,  'b', "submethod",  "submethods" },
+    [K_SUBROUTINE]  = { true,  's', "subroutine", "subroutines" },
+    [K_TOKEN]       = { true,  't', "token",      "tokens" },
 };
 
 enum token {
@@ -220,7 +220,7 @@ trimIdentifier (enum perl6Kind kind, const char **ps, int len)
 
 struct p6Ctx {
     enum token  tokens[128 /* unlikely to need more than this */];
-    int         n_tokens;
+    unsigned int n_tokens;
     vString    *name;
     const char *line;      /* Saved from readLineFromInputFile() */
 };
@@ -329,7 +329,7 @@ Perl6Parser (void)
     static selectLanguage selectors [] = { selectByPickingPerlVersion,
 					   NULL };
     parserDefinition* def = parserNew("Perl6");
-    def->kinds      = perl6Kinds;
+    def->kindTable      = perl6Kinds;
     def->kindCount  = ARRAY_SIZE(perl6Kinds);
     def->extensions = extensions;
     def->parser     = findPerl6Tags;

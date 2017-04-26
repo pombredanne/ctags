@@ -1,6 +1,4 @@
 /*
- *   $Id:$
- *
  *   Copyright (c) 2000-2006, Darren Hiebert, Elias Pschernig
  *
  *   This source code is released for free distribution under the terms of the
@@ -43,13 +41,13 @@ typedef struct {
 	int skip;
 } KeyWord;
 
-static kindOption BasicKinds[] = {
-	{TRUE, 'c', "constant", "constants"},
-	{TRUE, 'f', "function", "functions"},
-	{TRUE, 'l', "label", "labels"},
-	{TRUE, 't', "type", "types"},
-	{TRUE, 'v', "variable", "variables"},
-	{TRUE, 'g', "enum", "enumerations"}
+static kindDefinition BasicKinds[] = {
+	{true, 'c', "constant", "constants"},
+	{true, 'f', "function", "functions"},
+	{true, 'l', "label", "labels"},
+	{true, 't', "type", "types"},
+	{true, 'v', "variable", "variables"},
+	{true, 'g', "enum", "enumerations"}
 };
 
 static KeyWord blitzbasic_keywords[] = {
@@ -99,7 +97,6 @@ static char const *extract_name (char const *pos, vString * name)
 	vStringClear (name);
 	for (; *pos && !isspace (*pos) && *pos != '(' && *pos != ','; pos++)
 		vStringPut (name, *pos);
-	vStringTerminate (name);
 	return pos;
 }
 
@@ -193,11 +190,9 @@ parserDefinition *BasicParser (void)
 {
 	static char const *extensions[] = { "bas", "bi", "bb", "pb", NULL };
 	parserDefinition *def = parserNew ("Basic");
-	def->kinds = BasicKinds;
+	def->kindTable = BasicKinds;
 	def->kindCount = ARRAY_SIZE (BasicKinds);
 	def->extensions = extensions;
 	def->parser = findBasicTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

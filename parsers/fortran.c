@@ -31,11 +31,11 @@
 *   MACROS
 */
 #define isident(c)              (isalnum(c) || (c) == '_')
-#define isBlank(c)              (boolean) (c == ' ' || c == '\t')
-#define isType(token,t)         (boolean) ((token)->type == (t))
-#define isKeyword(token,k)      (boolean) ((token)->keyword == (k))
-#define isSecondaryKeyword(token,k)  (boolean) ((token)->secondary == NULL ? \
-	FALSE : (token)->secondary->keyword == (k))
+#define isBlank(c)              (bool) (c == ' ' || c == '\t')
+#define isType(token,t)         (bool) ((token)->type == (t))
+#define isKeyword(token,k)      (bool) ((token)->keyword == (k))
+#define isSecondaryKeyword(token,k)  (bool) ((token)->secondary == NULL ? \
+	false : (token)->secondary->keyword == (k))
 
 /*
 *   DATA DECLARATIONS
@@ -54,8 +54,7 @@ typedef enum eFortranLineType {
 
 /*  Used to specify type of keyword.
  */
-typedef enum eKeywordId {
-	KEYWORD_NONE = -1,
+enum eKeywordId {
 	KEYWORD_abstract,
 	KEYWORD_allocatable,
 	KEYWORD_assignment,
@@ -141,7 +140,8 @@ typedef enum eKeywordId {
 	KEYWORD_volatile,
 	KEYWORD_where,
 	KEYWORD_while
-} keywordId;
+};
+typedef int keywordId; /* to allow KEYWORD_NONE */
 
 typedef enum eTokenType {
 	TOKEN_UNDEFINED,
@@ -201,10 +201,10 @@ typedef struct sTokenInfo {
 	vString* parentType;
 	vString* signature;
 	impType implementation;
-	boolean isMethod;
+	bool isMethod;
 	struct sTokenInfo *secondary;
 	unsigned long lineNumber;
-	fpos_t filePosition;
+	MIOPos filePosition;
 } tokenInfo;
 
 /*
@@ -214,30 +214,30 @@ typedef struct sTokenInfo {
 static langType Lang_fortran;
 static int Ungetc;
 static unsigned int Column;
-static boolean FreeSourceForm;
-static boolean FreeSourceFormFound = FALSE;
-static boolean ParsingString;
+static bool FreeSourceForm;
+static bool FreeSourceFormFound = false;
+static bool ParsingString;
 
 /* indexed by tagType */
-static kindOption FortranKinds [] = {
-	{ TRUE,  'b', "blockData",  "block data"},
-	{ TRUE,  'c', "common",     "common blocks"},
-	{ TRUE,  'e', "entry",      "entry points"},
-	{ TRUE,  'E', "enum",       "enumerations"},
-	{ TRUE,  'f', "function",   "functions"},
-	{ TRUE,  'i', "interface",  "interface contents, generic names, and operators"},
-	{ TRUE,  'k', "component",  "type and structure components"},
-	{ TRUE,  'l', "label",      "labels"},
-	{ FALSE, 'L', "local",      "local, common block, and namelist variables"},
-	{ TRUE,  'm', "module",     "modules"},
-	{ TRUE,  'M', "method",     "type bound procedures"},
-	{ TRUE,  'n', "namelist",   "namelists"},
-	{ TRUE,  'N', "enumerator", "enumeration values"},
-	{ TRUE,  'p', "program",    "programs"},
-	{ FALSE, 'P', "prototype",  "subprogram prototypes"},
-	{ TRUE,  's', "subroutine", "subroutines"},
-	{ TRUE,  't', "type",       "derived types and structures"},
-	{ TRUE,  'v', "variable",   "program (global) and module variables"}
+static kindDefinition FortranKinds [] = {
+	{ true,  'b', "blockData",  "block data"},
+	{ true,  'c', "common",     "common blocks"},
+	{ true,  'e', "entry",      "entry points"},
+	{ true,  'E', "enum",       "enumerations"},
+	{ true,  'f', "function",   "functions"},
+	{ true,  'i', "interface",  "interface contents, generic names, and operators"},
+	{ true,  'k', "component",  "type and structure components"},
+	{ true,  'l', "label",      "labels"},
+	{ false, 'L', "local",      "local, common block, and namelist variables"},
+	{ true,  'm', "module",     "modules"},
+	{ true,  'M', "method",     "type bound procedures"},
+	{ true,  'n', "namelist",   "namelists"},
+	{ true,  'N', "enumerator", "enumeration values"},
+	{ true,  'p', "program",    "programs"},
+	{ false, 'P', "prototype",  "subprogram prototypes"},
+	{ true,  's', "subroutine", "subroutines"},
+	{ true,  't', "type",       "derived types and structures"},
+	{ true,  'v', "variable",   "program (global) and module variables"}
 };
 
 /* For efinitions of Fortran 77 with extensions:
@@ -248,7 +248,7 @@ static kindOption FortranKinds [] = {
  * http://h18009.www1.hp.com/fortran/docs/lrm/dflrm.htm
  */
 
-static const keywordTable const FortranKeywordTable [] = {
+static const keywordTable FortranKeywordTable [] = {
 	/* keyword          keyword ID */
 	{ "abstract",       KEYWORD_abstract     },
 	{ "allocatable",    KEYWORD_allocatable  },
@@ -390,7 +390,7 @@ static void ancestorPop (void)
 	Ancestors.list [Ancestors.count].string     = NULL;
 	Ancestors.list [Ancestors.count].lineNumber = 0L;
 	Ancestors.list [Ancestors.count].implementation = IMP_DEFAULT;
-	Ancestors.list [Ancestors.count].isMethod   = FALSE;
+	Ancestors.list [Ancestors.count].isMethod   = false;
 }
 
 static const tokenInfo* ancestorScope (void)
@@ -427,14 +427,14 @@ static void ancestorClear (void)
 	Ancestors.max = 0;
 }
 
-static boolean insideInterface (void)
+static bool insideInterface (void)
 {
-	boolean result = FALSE;
+	bool result = false;
 	unsigned int i;
 	for (i = 0  ;  i < Ancestors.count && !result ;  ++i)
 	{
 		if (Ancestors.list [i].tag == TAG_INTERFACE)
-			result = TRUE;
+			result = true;
 	}
 	return result;
 }
@@ -454,7 +454,7 @@ static tokenInfo *newToken (void)
 	token->parentType   = NULL;
 	token->signature    = NULL;
 	token->implementation = IMP_DEFAULT;
-	token->isMethod     = FALSE;
+	token->isMethod     = false;
 	token->lineNumber   = getInputLineNumber ();
 	token->filePosition = getInputFilePosition ();
 
@@ -485,14 +485,14 @@ static void deleteToken (tokenInfo *const token)
 	}
 }
 
-static boolean isFileScope (const tagType type)
+static bool isFileScope (const tagType type)
 {
-	return (boolean) (type == TAG_LABEL || type == TAG_LOCAL);
+	return (bool) (type == TAG_LABEL || type == TAG_LOCAL);
 }
 
-static boolean includeTag (const tagType type)
+static bool includeTag (const tagType type)
 {
-	boolean include;
+	bool include;
 	Assert (type != TAG_UNDEFINED);
 	include = FortranKinds [(int) type].enabled;
 	if (include && isFileScope (type))
@@ -521,12 +521,14 @@ static void makeFortranTag (tokenInfo *const token, tagType tag)
 		initTagEntry (&e, name, &(FortranKinds [token->tag]));
 
 		if (token->tag == TAG_COMMON_BLOCK)
-			e.lineNumberEntry = (boolean) (Option.locate != EX_PATTERN);
+			e.lineNumberEntry = (bool) (Option.locate != EX_PATTERN);
 
 		e.lineNumber	= token->lineNumber;
 		e.filePosition	= token->filePosition;
 		e.isFileScope	= isFileScope (token->tag);
-		e.truncateLine	= (boolean) (token->tag != TAG_LABEL);
+		if (e.isFileScope)
+			markTagExtraBit (&e, XTAG_FILE_SCOPE);
+		e.truncateLineAfterTag = (bool) (token->tag != TAG_LABEL);
 
 		if (ancestorCount () > 0)
 		{
@@ -580,10 +582,11 @@ static void makeLabelTag (vString *const label)
 
 static lineType getLineType (void)
 {
-	vString *label = vStringNew ();
+	static vString *label = NULL;
 	int column = 0;
 	lineType type = LTYPE_UNDETERMINED;
 
+	label = vStringNewOrClear (label);
 	do  /* read in first 6 "margin" characters */
 	{
 		int c = getcFromInputFile ();
@@ -644,17 +647,13 @@ static lineType getLineType (void)
 	Assert (type != LTYPE_UNDETERMINED);
 
 	if (vStringLength (label) > 0)
-	{
-		vStringTerminate (label);
 		makeLabelTag (label);
-	}
-	vStringDelete (label);
 	return type;
 }
 
 static int getFixedFormChar (void)
 {
-	boolean newline = FALSE;
+	bool newline = false;
 	lineType type;
 	int c = '\0';
 
@@ -673,20 +672,20 @@ static int getFixedFormChar (void)
 		}
 		if (c == '\n')
 		{
-			newline = TRUE;  /* need to check for continuation line */
+			newline = true;  /* need to check for continuation line */
 			Column = 0;
 		}
 		else if (c == '!'  &&  ! ParsingString)
 		{
 			c = skipLine ();
-			newline = TRUE;  /* need to check for continuation line */
+			newline = true;  /* need to check for continuation line */
 			Column = 0;
 		}
 		else if (c == '&')  /* check for free source form */
 		{
 			const int c2 = getcFromInputFile ();
 			if (c2 == '\n')
-				FreeSourceFormFound = TRUE;
+				FreeSourceFormFound = true;
 			else
 				ungetcToInputFile (c2);
 		}
@@ -698,7 +697,7 @@ static int getFixedFormChar (void)
 		{
 			case LTYPE_UNDETERMINED:
 			case LTYPE_INVALID:
-				FreeSourceFormFound = TRUE;
+				FreeSourceFormFound = true;
 				if (! FreeSourceForm)
 				    return EOF;
 
@@ -754,8 +753,8 @@ static int skipToNextLine (void)
 
 static int getFreeFormChar (void)
 {
-	static boolean newline = TRUE;
-	boolean advanceLine = FALSE;
+	static bool newline = true;
+	bool advanceLine = false;
 	int c = getcFromInputFile ();
 
 	/* If the last nonblank, non-comment character of a FORTRAN 90
@@ -769,11 +768,11 @@ static int getFreeFormChar (void)
 		while (isspace (c)  &&  c != '\n');
 		if (c == '\n')
 		{
-			newline = TRUE;
-			advanceLine = TRUE;
+			newline = true;
+			advanceLine = true;
 		}
 		else if (c == '!')
-			advanceLine = TRUE;
+			advanceLine = true;
 		else
 		{
 			ungetcToInputFile (c);
@@ -781,7 +780,7 @@ static int getFreeFormChar (void)
 		}
 	}
 	else if (newline && (c == '!' || c == '#'))
-		advanceLine = TRUE;
+		advanceLine = true;
 	while (advanceLine)
 	{
 		while (isspace (c))
@@ -789,15 +788,15 @@ static int getFreeFormChar (void)
 		if (c == '!' || (newline && c == '#'))
 		{
 			c = skipToNextLine ();
-			newline = TRUE;
+			newline = true;
 			continue;
 		}
 		if (c == '&')
 			c = getcFromInputFile ();
 		else
-			advanceLine = FALSE;
+			advanceLine = false;
 	}
-	newline = (boolean) (c == '\n');
+	newline = (bool) (c == '\n');
 	return c;
 }
 
@@ -841,7 +840,6 @@ static vString *parseInteger (int c)
 		vStringPut (string, c);
 		c = getChar ();
 	}
-	vStringTerminate (string);
 
 	if (c == '_')
 	{
@@ -877,8 +875,6 @@ static vString *parseNumeric (int c)
 	else
 		ungetChar (c);
 
-	vStringTerminate (string);
-
 	return string;
 }
 
@@ -886,7 +882,7 @@ static void parseString (vString *const string, const int delimiter)
 {
 	const unsigned long inputLineNumber = getInputLineNumber ();
 	int c;
-	ParsingString = TRUE;
+	ParsingString = true;
 	c = getChar ();
 	while (c != delimiter  &&  c != '\n'  &&  c != EOF)
 	{
@@ -898,10 +894,9 @@ static void parseString (vString *const string, const int delimiter)
 		verbose ("%s: unterminated character string at line %lu\n",
 				getInputFileName (), inputLineNumber);
 		if (c != EOF && ! FreeSourceForm)
-			FreeSourceFormFound = TRUE;
+			FreeSourceFormFound = true;
 	}
-	vStringTerminate (string);
-	ParsingString = FALSE;
+	ParsingString = false;
 }
 
 /*  Read a C identifier beginning with "firstChar" and places it into "name".
@@ -916,7 +911,6 @@ static void parseIdentifier (vString *const string, const int firstChar)
 		c = getChar ();
 	} while (isident (c));
 
-	vStringTerminate (string);
 	ungetChar (c);  /* unget non-identifier character */
 }
 
@@ -942,7 +936,6 @@ static void checkForLabel (void)
 	}
 	if (length > 0  &&  token != NULL)
 	{
-		vStringTerminate (token->string);
 		makeFortranTag (token, TAG_LABEL);
 		deleteToken (token);
 	}
@@ -952,7 +945,7 @@ static void checkForLabel (void)
 static void readIdentifier (tokenInfo *const token, const int c)
 {
 	parseIdentifier (token->string, c);
-	token->keyword = analyzeToken (token->string, Lang_fortran);
+	token->keyword = lookupCaseKeyword (vStringValue (token->string), Lang_fortran);
 	if (! isKeyword (token, KEYWORD_NONE))
 		token->type = TOKEN_KEYWORD;
 	else
@@ -961,7 +954,7 @@ static void readIdentifier (tokenInfo *const token, const int c)
 		if (strncmp (vStringValue (token->string), "end", 3) == 0)
 		{
 			vString *const sub = vStringNewInit (vStringValue (token->string) + 3);
-			const keywordId kw = analyzeToken (sub, Lang_fortran);
+			const keywordId kw = lookupCaseKeyword (vStringValue (sub), Lang_fortran);
 			vStringDelete (sub);
 			if (kw != KEYWORD_NONE)
 			{
@@ -988,7 +981,7 @@ static void readToken (tokenInfo *const token)
 	vStringDelete (token->parentType);
 	vStringDelete (token->signature);
 	token->parentType = NULL;
-	token->isMethod = FALSE;
+	token->isMethod = false;
 	token->signature = NULL;
 
 getNextChar:
@@ -1023,7 +1016,6 @@ getNextChar:
 				c = getChar ();
 			} while (strchr (operatorChars, c) != NULL);
 			ungetChar (c);
-			vStringTerminate (token->string);
 			token->type = TOKEN_OPERATOR;
 			break;
 		}
@@ -1053,7 +1045,6 @@ getNextChar:
 			if (c == '.')
 			{
 				vStringPut (token->string, c);
-				vStringTerminate (token->string);
 				token->type = TOKEN_OPERATOR;
 			}
 			else
@@ -1188,9 +1179,9 @@ static void skipOverSqaures (tokenInfo *const token)
 	skipOverSquaresFull (token, NULL, NULL);
 }
 
-static boolean isTypeSpec (tokenInfo *const token)
+static bool isTypeSpec (tokenInfo *const token)
 {
-	boolean result;
+	bool result;
 	switch (token->keyword)
 	{
 		case KEYWORD_byte:
@@ -1207,28 +1198,28 @@ static boolean isTypeSpec (tokenInfo *const token)
 		case KEYWORD_generic:
 		case KEYWORD_class:
 		case KEYWORD_enumerator:
-			result = TRUE;
+			result = true;
 			break;
 		default:
-			result = FALSE;
+			result = false;
 			break;
 	}
 	return result;
 }
 
-static boolean isSubprogramPrefix (tokenInfo *const token)
+static bool isSubprogramPrefix (tokenInfo *const token)
 {
-	boolean result;
+	bool result;
 	switch (token->keyword)
 	{
 		case KEYWORD_elemental:
 		case KEYWORD_pure:
 		case KEYWORD_recursive:
 		case KEYWORD_stdcall:
-			result = TRUE;
+			result = true;
 			break;
 		default:
-			result = FALSE;
+			result = false;
 			break;
 	}
 	return result;
@@ -1330,12 +1321,12 @@ static void parseTypeSpec (tokenInfo *const token)
 	}
 }
 
-static boolean skipStatementIfKeyword (tokenInfo *const token, keywordId keyword)
+static bool skipStatementIfKeyword (tokenInfo *const token, keywordId keyword)
 {
-	boolean result = FALSE;
+	bool result = false;
 	if (isKeyword (token, keyword))
 	{
-		result = TRUE;
+		result = true;
 		skipToNextStatement (token);
 	}
 	return result;
@@ -1793,9 +1784,9 @@ static void parseStructureStmt (tokenInfo *const token)
  *
  *  access-spec is PUBLIC or PRIVATE
  */
-static boolean parseSpecificationStmt (tokenInfo *const token)
+static bool parseSpecificationStmt (tokenInfo *const token)
 {
-	boolean result = TRUE;
+	bool result = true;
 	switch (token->keyword)
 	{
 		case KEYWORD_common:
@@ -1827,7 +1818,7 @@ static boolean parseSpecificationStmt (tokenInfo *const token)
 			break;
 
 		default:
-			result = FALSE;
+			result = false;
 			break;
 	}
 	return result;
@@ -1869,15 +1860,15 @@ static void parseComponentDefStmt (tokenInfo *const token)
 {
 	tokenInfo* st = newToken ();
 	tokenInfo* qt = NULL;
-	boolean isGeneric = FALSE;
+	bool isGeneric = false;
 
 	Assert (isTypeSpec (token));
 	if (isKeyword (token, KEYWORD_procedure) ||
 		isKeyword (token, KEYWORD_final) ||
 		isKeyword (token, KEYWORD_generic))
-		st->isMethod = TRUE;
+		st->isMethod = true;
 	if (isKeyword (token, KEYWORD_generic))
-		isGeneric = TRUE;
+		isGeneric = true;
 	parseTypeSpec (token);
 	if (isType (token, TOKEN_COMMA))
 	{
@@ -2083,9 +2074,9 @@ static void parseEntryStmt (tokenInfo *const token)
 /*  stmt-function-stmt is
  *      function-name ([dummy-arg-name-list]) = scalar-expr
  */
-static boolean parseStmtFunctionStmt (tokenInfo *const token)
+static bool parseStmtFunctionStmt (tokenInfo *const token)
 {
-	boolean result = FALSE;
+	bool result = false;
 	Assert (isType (token, TOKEN_IDENTIFIER));
 #if 0  /* cannot reliably parse this yet */
 	makeFortranTag (token, TAG_FUNCTION);
@@ -2094,16 +2085,16 @@ static boolean parseStmtFunctionStmt (tokenInfo *const token)
 	if (isType (token, TOKEN_PAREN_OPEN))
 	{
 		skipOverParens (token);
-		result = (boolean) (isType (token, TOKEN_OPERATOR) &&
+		result = (bool) (isType (token, TOKEN_OPERATOR) &&
 			strcmp (vStringValue (token->string), "=") == 0);
 	}
 	skipToNextStatement (token);
 	return result;
 }
 
-static boolean isIgnoredDeclaration (tokenInfo *const token)
+static bool isIgnoredDeclaration (tokenInfo *const token)
 {
-	boolean result;
+	bool result;
 	switch (token->keyword)
 	{
 		case KEYWORD_cexternal:
@@ -2122,11 +2113,11 @@ static boolean isIgnoredDeclaration (tokenInfo *const token)
 		case KEYWORD_value:
 		case KEYWORD_virtual:
 		case KEYWORD_volatile:
-			result = TRUE;
+			result = true;
 			break;
 
 		default:
-			result = FALSE;
+			result = false;
 			break;
 	}
 	return result;
@@ -2142,9 +2133,9 @@ static boolean isIgnoredDeclaration (tokenInfo *const token)
  *      [entry-stmt]
  *      [stmt-function-stmt]
  */
-static boolean parseDeclarationConstruct (tokenInfo *const token)
+static bool parseDeclarationConstruct (tokenInfo *const token)
 {
-	boolean result = TRUE;
+	bool result = true;
 	switch (token->keyword)
 	{
 		case KEYWORD_entry:		parseEntryStmt (token);      break;
@@ -2159,7 +2150,7 @@ static boolean parseDeclarationConstruct (tokenInfo *const token)
 				parseInterfaceBlock (token);
 			else
 				skipToNextStatement (token);
-			result = TRUE;
+			result = true;
 			break;
 
 		case KEYWORD_automatic:
@@ -2168,7 +2159,7 @@ static boolean parseDeclarationConstruct (tokenInfo *const token)
 				parseTypeDeclarationStmt (token);
 			else
 				skipToNextStatement (token);
-			result = TRUE;
+			result = true;
 			break;
 
 		default:
@@ -2177,7 +2168,7 @@ static boolean parseDeclarationConstruct (tokenInfo *const token)
 			else if (isTypeSpec (token))
 			{
 				parseTypeDeclarationStmt (token);
-				result = TRUE;
+				result = true;
 			}
 			else if (isType (token, TOKEN_IDENTIFIER))
 				result = parseStmtFunctionStmt (token);
@@ -2194,9 +2185,9 @@ static boolean parseDeclarationConstruct (tokenInfo *const token)
  *      or [format-stmt] (is FORMAT etc.)
  *      or [entry-stmt] (is ENTRY entry-name etc.)
  */
-static boolean parseImplicitPartStmt (tokenInfo *const token)
+static bool parseImplicitPartStmt (tokenInfo *const token)
 {
-	boolean result = TRUE;
+	bool result = true;
 	switch (token->keyword)
 	{
 		case KEYWORD_entry: parseEntryStmt (token); break;
@@ -2208,7 +2199,7 @@ static boolean parseImplicitPartStmt (tokenInfo *const token)
 			skipToNextStatement (token);
 			break;
 
-		default: result = FALSE; break;
+		default: result = false; break;
 	}
 	return result;
 }
@@ -2218,17 +2209,17 @@ static boolean parseImplicitPartStmt (tokenInfo *const token)
  *      [implicit-part] (is [implicit-part-stmt] ... [implicit-stmt])
  *      [declaration-construct] ...
  */
-static boolean parseSpecificationPart (tokenInfo *const token)
+static bool parseSpecificationPart (tokenInfo *const token)
 {
-	boolean result = FALSE;
+	bool result = false;
 	while (skipStatementIfKeyword (token, KEYWORD_use))
-		result = TRUE;
+		result = true;
 	while (skipStatementIfKeyword (token, KEYWORD_import))
-		result = TRUE;
+		result = true;
 	while (parseImplicitPartStmt (token))
-		result = TRUE;
+		result = true;
 	while (parseDeclarationConstruct (token))
-		result = TRUE;
+		result = true;
 	return result;
 }
 
@@ -2270,7 +2261,7 @@ static void parseBlockData (tokenInfo *const token)
  */
 static void parseInternalSubprogramPart (tokenInfo *const token)
 {
-	boolean done = FALSE;
+	bool done = false;
 	if (isKeyword (token, KEYWORD_contains))
 		skipToNextStatement (token);
 	do
@@ -2279,7 +2270,7 @@ static void parseInternalSubprogramPart (tokenInfo *const token)
 		{
 			case KEYWORD_function:
 			case KEYWORD_subroutine: parseSubprogram (token); break;
-			case KEYWORD_end:        done = TRUE;             break;
+			case KEYWORD_end:        done = true;             break;
 
 			default:
 				if (isSubprogramPrefix (token))
@@ -2340,10 +2331,10 @@ static void parseModule (tokenInfo *const token)
  *      or data-stmt
  *      or entry-stmt
  */
-static boolean parseExecutionPart (tokenInfo *const token)
+static bool parseExecutionPart (tokenInfo *const token)
 {
-	boolean result = FALSE;
-	boolean done = FALSE;
+	bool result = false;
+	bool done = false;
 	while (! done && ! isType (token, TOKEN_EOF))
 	{
 		switch (token->keyword)
@@ -2353,18 +2344,18 @@ static boolean parseExecutionPart (tokenInfo *const token)
 					readToken (token);
 				else
 					skipToNextStatement (token);
-				result = TRUE;
+				result = true;
 				break;
 
 			case KEYWORD_entry:
 				parseEntryStmt (token);
-				result = TRUE;
+				result = true;
 				break;
 
 			case KEYWORD_contains:
 			case KEYWORD_function:
 			case KEYWORD_subroutine:
-				done = TRUE;
+				done = true;
 				break;
 
 			case KEYWORD_end:
@@ -2379,10 +2370,10 @@ static boolean parseExecutionPart (tokenInfo *const token)
 					isSecondaryKeyword (token, KEYWORD_block))
 				{
 					skipToNextStatement (token);
-					result = TRUE;
+					result = true;
 				}
 				else
-					done = TRUE;
+					done = true;
 				break;
 		}
 	}
@@ -2521,8 +2512,8 @@ static void parseProgramUnit (tokenInfo *const token)
 					readToken (token);
 				else
 				{
-					boolean one = parseSpecificationPart (token);
-					boolean two = parseExecutionPart (token);
+					bool one = parseSpecificationPart (token);
+					bool two = parseExecutionPart (token);
 					if (! (one || two))
 						readToken (token);
 				}
@@ -2539,7 +2530,7 @@ static rescanReason findFortranTags (const unsigned int passCount)
 	Assert (passCount < 3);
 	token = newToken ();
 
-	FreeSourceForm = (boolean) (passCount > 1);
+	FreeSourceForm = (bool) (passCount > 1);
 	Column = 0;
 	parseProgramUnit (token);
 	if (FreeSourceFormFound  &&  ! FreeSourceForm)
@@ -2573,7 +2564,7 @@ extern parserDefinition* FortranParser (void)
 		NULL
 	};
 	parserDefinition* def = parserNew ("Fortran");
-	def->kinds      = FortranKinds;
+	def->kindTable      = FortranKinds;
 	def->kindCount  = ARRAY_SIZE (FortranKinds);
 	def->extensions = extensions;
 	def->parser2    = findFortranTags;
@@ -2582,5 +2573,3 @@ extern parserDefinition* FortranParser (void)
 	def->keywordCount = ARRAY_SIZE (FortranKeywordTable);
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

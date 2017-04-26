@@ -7,8 +7,10 @@ bin_PROGRAMS = ctags
 
 if USE_READCMD
 bin_PROGRAMS+= readtags
-readtags_CPPFLAGS = -DREADTAGS_MAIN -I. -I$(srcdir) -I$(srcdir)/main
-dist_readtags_SOURCES = readtags.c readtags.h
+readtags_CPPFLAGS = -I. -I$(srcdir) -I$(srcdir)/main -I$(srcdir)/read
+dist_readtags_SOURCES = $(READTAGS_SRCS) $(READTAGS_HEADS)
+readtags_CPPFLAGS += -DQUALIFIER -I$(srcdir)/dsl
+dist_readtags_SOURCES += $(QUALIFIER_SRCS) $(QUALIFIER_HEADS)
 endif
 
 if !HAVE_FNMATCH
@@ -21,8 +23,25 @@ MAIN_SRCS += $(REGEX_SRCS)
 MAIN_HEADS += $(REGEX_HEADS)
 endif
 
+if HAVE_LIBXML
+PARSER_SRCS += $(XML_SRCS)
+PARSER_HEADS += $(XML_HEADS)
+endif
+
+if HAVE_JANSSON
+MAIN_SRCS += $(JANSSON_SRCS)
+MAIN_HEADS += $(JANSSON_HEADS)
+endif
+
+if HAVE_LIBYAML
+PARSER_SRCS += $(YAML_SRCS)
+PARSER_HEADS += $(YAML_HEADS)
+endif
+
 ctags_CPPFLAGS = -I. -I$(srcdir) -I$(srcdir)/main
+if ENABLE_DEBUGGING
 ctags_CPPFLAGS+= $(DEBUG_CPPFLAGS)
+endif
 ctags_CPPFLAGS+= $(FNMATCH_CPPFLAGS)
 ctags_CPPFLAGS+= $(REGCOMP_CPPFLAGS)
 ctags_CPPFLAGS+= -DHAVE_REPOINFO_H
@@ -32,6 +51,14 @@ ctags_CFLAGS  += $(EXTRA_CFLAGS)
 ctags_CFLAGS  += $(WARNING_CFLAGS)
 ctags_CFLAGS  += $(COVERAGE_CFLAGS)
 ctags_CFLAGS  += $(CGCC_CFLAGS)
+ctags_CFLAGS  += $(LIBXML_CFLAGS)
+ctags_CFLAGS  += $(JANSSON_CFLAGS)
+ctags_CFLAGS  += $(LIBYAML_CFLAGS)
+
+ctags_LDADD  =
+ctags_LDADD += $(LIBXML_LIBS)
+ctags_LDADD += $(JANSSON_LIBS)
+ctags_LDADD += $(LIBYAML_LIBS)
 
 nodist_ctags_SOURCES = $(REPOINFO_HEADS)
 BUILT_SOURCES = $(REPOINFO_HEADS)
@@ -46,12 +73,15 @@ $(REPOINFO_HEADS):
 	echo > $@
 endif
 
+if RUN_OPTLIB2C
+optlib2c_verbose = $(optlib2c_verbose_@AM_V@)
+optlib2c_verbose_ = $(optlib2c_verbose_@AM_DEFAULT_V@)
+optlib2c_verbose_0 = @echo OPTLIB2C "  $@";
 OPTLIB2C = $(srcdir)/misc/optlib2c
-.ctags.c: $(OPTLIB2C)
-	$(OPTLIB2C) $< > $@
+%.c: %.ctags $(OPTLIB2C) Makefile
+	$(optlib2c_verbose)$(OPTLIB2C) --transform-xcmd="$(program_transform_name)" $< > $@
+endif
 dist_ctags_SOURCES = $(ALL_HEADS) $(ALL_SRCS)
-
-man_MANS = ctags.1
 
 if ENABLE_XCMD
 driversdir = $(pkglibexecdir)/drivers
@@ -71,4 +101,14 @@ include $(top_srcdir)/makefiles/testing.mak
 include $(top_srcdir)/makefiles/test-cases.mak
 
 include $(top_srcdir)/makefiles/help.mak
+
+if HAVE_RST2MAN
+man_MANS = man/ctags.1
+rst2man_verbose = $(rst2man_verbose_@AM_V@)
+rst2man_verbose_ = $(rst2man_verbose_@AM_DEFAULT_V@)
+rst2man_verbose_0 = @echo RST2MAN "  $@";
+SUFFIXES = .1.rst .1
+.1.rst.1:
+	$(rst2man_verbose)$(RST2MAN) $< $@
+endif
 

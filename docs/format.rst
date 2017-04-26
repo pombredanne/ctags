@@ -1,14 +1,20 @@
-The contents of next section is a copy of FORMAT file in exuberant
-ctags source code in its subversion repository at sourceforge.net.
-I(Masatake YAMATO) changed only its format in the most of all
-parts.  I added a subsection for showing the position of universal
-ctags.
-
-----
-
-
+===================================================================
 Proposal for extended Vi tags file format
 ===================================================================
+
+.. note::
+
+    The contents of next section is a copy of FORMAT file in exuberant
+    ctags source code in its subversion repository at sourceforge.net.
+    I(Masatake YAMATO) changed only its format in the most of all
+    parts.  I added a subsection for showing the position of universal
+    ctags.
+
+.. contents:: `Table of contents`
+	:depth: 3
+	:local:
+
+----
 
 :Version: 0.06 DRAFT
 :Date: 1998 Feb 8
@@ -466,3 +472,17 @@ Exceptions
    this exceptions. See {tagname} of Proposal section for more detail
    about the conversion.
 
+.. _compat-output:
+
+Compatible output and weakness
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. NOT REVIEWED YET
+
+Default behavior (``--output-format=u-ctags`` option) has the
+exceptions.  In ther hand, with ``--output-format=e-ctags`` option
+ctags has no exception; Universal-ctags command may use the same file
+format as Exuberant-ctags. However, ``--output-format=e-ctags`` throws
+away a tag entry which name includes a space or a tab
+character. ``TAG_OUTPUT_MODE`` psuedo tag tells which format is
+used when ctags generating tags file.

@@ -1,23 +1,23 @@
 /*
  * Copyright (c) 2011, 2012 Steven Oliver <oliver.steven@gmail.com>
- * 
+ *
  * This source code is released for free distribution under the terms of the
  * GNU General Public License version 2 or (at your option) any later version.
- * 
+ *
  * This module contains functions for generating tags for Falcon language
  * files.
  */
 
 
-/* 
- * INCLUDE FILES 
+/*
+ * INCLUDE FILES
  */
 #include "general.h"
 
 #include <string.h>
-#include <ctype.h>   
+#include <ctype.h>
 
-#include "read.h"  
+#include "read.h"
 #include "routines.h"
 
 /*
@@ -31,28 +31,28 @@ typedef enum eFalconKinds {
     K_NAMESPACE
 } falconKind;
 
-static kindOption FalconKinds [] = {
-    {TRUE, 'c', "class",     "classes" },
-    {TRUE, 'f', "function",  "functions"},
-    {TRUE, 'm', "member",    "class members"},
-    {TRUE, 'v', "variable",  "variables"},
-    {TRUE, 'i', "namespace", "imports"}
+static kindDefinition FalconKinds [] = {
+    {true, 'c', "class",     "classes" },
+    {true, 'f', "function",  "functions"},
+    {true, 'm', "member",    "class members"},
+    {true, 'v', "variable",  "variables"},
+    {true, 'i', "namespace", "imports"}
 };
 
-/* 
+/*
  * Function Definitions
  */
 
-static boolean isIdentifierChar (int c)
+static bool isIdentifierChar (int c)
 {
-    return (boolean) (isalnum (c));
+    return (bool) (isalnum (c));
 }
 
 static const unsigned char *skipSpace (const unsigned char *cp)
 {
     while (isspace ((int) *cp))
         ++cp;
-        
+
     return cp;
 }
 
@@ -78,13 +78,12 @@ static void findFalconTags (void)
         {
             cp += 8;
             cp = skipSpace (cp);
-            
+
             while (isIdentifierChar ((int) *cp))
             {
                 vStringPut (name, (int) *cp);
                 ++cp;
             }
-            vStringTerminate (name);
             makeSimpleTag (name, FalconKinds, K_FUNCTION);
             vStringClear (name);
         }
@@ -92,13 +91,12 @@ static void findFalconTags (void)
         {
             cp += 5;
             cp = skipSpace (cp);
-            
+
             while (isIdentifierChar ((int) *cp))
             {
                 vStringPut (name, (int) *cp);
                 ++cp;
             }
-            vStringTerminate (name);
             makeSimpleTag (name, FalconKinds, K_CLASS);
             vStringClear (name);
         }
@@ -106,13 +104,12 @@ static void findFalconTags (void)
         {
             cp += 4;
             cp = skipSpace (cp);
-            
+
             while (isIdentifierChar ((int) *cp))
             {
                 vStringPut (name, (int) *cp);
                 ++cp;
             }
-            vStringTerminate (name);
             makeSimpleTag (name, FalconKinds, K_NAMESPACE);
             vStringClear (name);
         }
@@ -120,13 +117,12 @@ static void findFalconTags (void)
         {
             cp += 12;
             cp = skipSpace (cp);
-            
+
             while (isIdentifierChar ((int) *cp))
             {
                 vStringPut (name, (int) *cp);
                 ++cp;
             }
-            vStringTerminate (name);
             makeSimpleTag (name, FalconKinds, K_NAMESPACE);
             vStringClear (name);
         }
@@ -134,18 +130,16 @@ static void findFalconTags (void)
     vStringDelete (name);
 }
 
-/* 
+/*
  * Parser definition structure
  */
 extern parserDefinition* FalconParser (void)
 {
     static const char *const extensions [] = { "fal", "ftd", NULL };
     parserDefinition *def = parserNew ("Falcon");
-    def->kinds      = FalconKinds;
+    def->kindTable  = FalconKinds;
     def->kindCount  = ARRAY_SIZE (FalconKinds);
     def->extensions = extensions;
     def->parser     = findFalconTags;
     return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

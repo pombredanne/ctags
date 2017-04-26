@@ -22,15 +22,20 @@ typedef enum eXtagType { /* extra tag content control */
 	XTAG_PSEUDO_TAGS,
 	XTAG_QUALIFIED_TAGS,
 	XTAG_REFERENCE_TAGS,
-	XTAG_FILE_NAMES_WITH_TOTAL_LINES,
+	XTAG_TAGS_GENERATED_BY_GUEST_PARSERS,
+	XTAG_TAGS_GENERATED_BY_SUBPARSER,
 
 	XTAG_COUNT
 } xtagType;
 
-typedef struct sXtagDesc {
-	boolean enabled;
+typedef struct sXtagDefinition {
+	bool enabled;
+	/* letter, and ftype are initialized in the main part,
+	   not in a parser. */
+#define NUL_XTAG_LETTER '\0'
 	unsigned char letter;
-	const char* description;  /* displayed in --list-extras output */
+	const char* name;	 /* used in extra: field */
+	const char* description;  /* displayed in --list-extra output */
 
 	/* If the value for "enabled" is given dynamically,
 	   use this field.
@@ -40,13 +45,26 @@ typedef struct sXtagDesc {
 	   to standared output, the tag is disabled by default.
 	   If it is connected to a regular file, the tag is enabled
 	   by default. */
-	boolean (* isEnabled) (struct sXtagDesc *desc);
-} xtagDesc;
+	bool (* isEnabled) (struct sXtagDefinition *def);
 
-extern xtagDesc* getXtagDesc (xtagType type);
-extern xtagType  getXtagTypeForOption (char letter);
-extern void printXtags (void);
-extern boolean isXtagEnabled (xtagType type);
-extern boolean enableXtag (xtagType type, boolean state);
+	unsigned int xtype;	/* Given from the main part */
+} xtagDefinition;
+
+extern xtagDefinition* getXtagDefinition (xtagType type);
+extern xtagType  getXtagTypeForLetter (char letter);
+extern xtagType  getXtagTypeForNameAndLanguage (const char *name, langType language);
+extern bool isXtagEnabled (xtagType type);
+extern bool enableXtag (xtagType type, bool state);
+extern bool isCommonXtag (xtagType type);
+extern int  getXtagOwner (xtagType type);
+
+const char* getXtagName (xtagType type);
+extern void printXtags (langType language);
+
+extern void initXtagObjects (void);
+extern int countXtags (void);
+
+extern int defineXtag (xtagDefinition *def, langType language);
+extern xtagType nextSiblingXtag (xtagType type);
 
 #endif	/* CTAGS_MAIN_FIELD_H */

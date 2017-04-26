@@ -29,43 +29,31 @@ static const size_t vStringInitialSize = 32;
 *   FUNCTION DEFINITIONS
 */
 
-static void vStringResize (vString *const string, const size_t newSize)
-{
-	char *const newBuffer = xRealloc (string->buffer, newSize, char);
-
-	string->size = newSize;
-	string->buffer = newBuffer;
-}
-
 /*
 *   External interface
 */
 
-extern boolean vStringAutoResize (vString *const string)
+extern void vStringResize (vString *const string, const size_t newSize)
 {
-	boolean ok = TRUE;
+	size_t size = vStringInitialSize;
 
-	if (string->size <= INT_MAX / 2)
+	while (size < newSize)
+		size *= 2;
+
+	if (size > string->size)
 	{
-		const size_t newSize = string->size * 2;
-
-		vStringResize (string, newSize);
+		string->size = size;
+		string->buffer = xRealloc (string->buffer, size, char);
 	}
-	return ok;
 }
 
 extern void vStringTruncate (vString *const string, const size_t length)
 {
 	Assert (length <= string->length);
 	string->length = length;
-	vStringTerminate (string);
+	string->buffer[string->length] = '\0';
 	DebugStatement ( memset (string->buffer + string->length, 0,
 	                         string->size - string->length); )
-}
-
-extern void vStringClear (vString *const string)
-{
-	vStringTruncate (string, 0);
 }
 
 extern void vStringDelete (vString *const string)
@@ -91,34 +79,6 @@ extern vString *vStringNew (void)
 	return string;
 }
 
-#ifndef VSTRING_PUTC_MACRO
-extern void vStringPut (vString *const string, const int c)
-{
-	if (string->length + 1 == string->size)  /*  check for buffer overflow */
-		vStringAutoResize (string);
-
-	string->buffer [string->length] = c;
-	if (c != '\0')
-		string->buffer [++string->length] = '\0';
-}
-#endif
-
-extern void vStringCatS (vString *const string, const char *const s)
-{
-#if 1
-	const size_t len = strlen (s);
-	while (string->length + len + 1 >= string->size)/*  check for buffer overflow */
-		vStringAutoResize (string);
-	strcpy (string->buffer + string->length, s);
-	string->length += len;
-#else
-	const char *p = s;
-	do
-		vStringPut (string, *p);
-	while (*p++ != '\0');
-#endif
-}
-
 extern vString *vStringNewCopy (const vString *const string)
 {
 	vString *vs = vStringNew ();
@@ -133,19 +93,47 @@ extern vString *vStringNewInit (const char *const s)
 	return vs;
 }
 
+static void stringCat (
+		vString *const string, const char *const s, const size_t length)
+{
+	if (string->length + length + 1 > string->size)
+		vStringResize (string, string->length + length + 1);
+
+	strncpy (string->buffer + string->length, s, length);
+	string->length += length;
+	vStringPut (string, '\0');
+}
+
+extern void vStringNCat (
+		vString *const string, const vString *const s, const size_t length)
+{
+	size_t len = vStringLength (s);
+
+	len = len < length ? len: length;
+	stringCat (string, s->buffer, len);
+}
+
 extern void vStringNCatS (
 		vString *const string, const char *const s, const size_t length)
 {
-	const char *p = s;
-	size_t remain = length;
+	size_t len = strlen (s);
 
-	while (*p != '\0'  &&  remain > 0)
-	{
-		vStringPut (string, *p);
-		--remain;
-		++p;
-	}
-	vStringTerminate (string);
+	len = len < length ? len : length;
+	stringCat (string, s, len);
+}
+
+extern void vStringCat (vString *const string, const vString *const s)
+{
+	size_t len = vStringLength (s);
+
+	stringCat (string, s->buffer, len);
+}
+
+extern void vStringCatS (vString *const string, const char *const s)
+{
+	size_t len = strlen (s);
+
+	stringCat (string, s, len);
 }
 
 /*  Strip trailing newline from string.
@@ -153,6 +141,10 @@ extern void vStringNCatS (
 extern void vStringStripNewline (vString *const string)
 {
 	const size_t final = string->length - 1;
+
+	if (string->length == 0)
+		return;
+
 	if (string->buffer [final] == '\n')
 	{
 		string->buffer [final] = '\0';
@@ -164,13 +156,14 @@ extern void vStringStripNewline (vString *const string)
  */
 extern void vStringStripLeading (vString *const string)
 {
-	while (isspace ((int) string->buffer [0]) && string->length > 0)
+	size_t n = 0;
+
+	while (n < string->length && isspace ((int) string->buffer [n]))
+		n++;
+	if (n > 0)
 	{
-		size_t i;
-		for (i = 1  ;  i < string->length  ;  ++i)
-			string->buffer [i - 1] = string->buffer [i];
-		--string->length;
-		string->buffer [string->length] = '\0';
+		memmove (string->buffer, string->buffer + n, string->length - n);
+		vStringTruncate (string, string->length - n);
 	}
 }
 
@@ -197,10 +190,23 @@ extern void vStringChop (vString *const string)
 	}
 }
 
+extern void vStringCopy (vString *const string, const vString *const s)
+{
+	vStringClear (string);
+	vStringCat (string, s);
+}
+
 extern void vStringCopyS (vString *const string, const char *const s)
 {
 	vStringClear (string);
 	vStringCatS (string, s);
+}
+
+extern void vStringNCopy (
+		vString *const string, const vString *const s, const size_t length)
+{
+	vStringClear (string);
+	vStringNCat (string, s, length);
 }
 
 extern void vStringNCopyS (
@@ -263,6 +269,87 @@ extern char    *vStringDeleteUnwrap       (vString *const string)
 	return buffer;
 }
 
+static char valueToXDigit (int v)
+{
+	Assert (v >= 0 && v <= 0xF);
 
+	if (v >= 0xA)
+		return 'A' + (v - 0xA);
+	else
+		return '0' + v;
+}
 
-/* vi:set tabstop=4 shiftwidth=4: */
+extern void vStringCatSWithEscaping (vString* b, const char *s)
+{
+	for(; *s; s++)
+	{
+		int c = *s;
+
+		/* escape control characters (incl. \t) */
+		if ((c > 0x00 && c <= 0x1F) || c == 0x7F || c == '\\')
+		{
+			vStringPut (b, '\\');
+
+			switch (c)
+			{
+				/* use a short form for known escapes */
+			case '\a':
+				c = 'a'; break;
+			case '\b':
+				c = 'b'; break;
+			case '\t':
+				c = 't'; break;
+			case '\n':
+				c = 'n'; break;
+			case '\v':
+				c = 'v'; break;
+			case '\f':
+				c = 'f'; break;
+			case '\r':
+				c = 'r'; break;
+			case '\\':
+				c = '\\'; break;
+			default:
+				vStringPut (b, 'x');
+				vStringPut (b, valueToXDigit ((c & 0xF0) >> 4));
+				vStringPut (b, valueToXDigit (c & 0x0F));
+				continue;
+			}
+		}
+		vStringPut (b, c);
+	}
+}
+
+extern void vStringCatSWithEscapingAsPattern (vString *output, const char* input)
+{
+	while (*input)
+	{
+		switch (*input)
+		{
+		case '\\':
+			vStringPut(output, '\\');
+			vStringPut(output, '\\');
+			break;
+		case '/':
+			vStringPut(output, '\\');
+			vStringPut(output, '/');
+			break;
+		default:
+			vStringPut(output, *input);
+			break;
+
+		}
+		input++;
+	}
+}
+
+extern vString *vStringNewOrClear (vString *const string)
+{
+	if (string)
+	{
+		vStringClear (string);
+		return string;
+	}
+	else
+		return vStringNew ();
+}

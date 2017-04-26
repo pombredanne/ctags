@@ -1,3 +1,5 @@
+:orphan:
+
 Tracking other projects
 ----------------------------------------------------------------------
 
@@ -232,6 +234,10 @@ Patches are always there. So it is easy to evaluate the value:)
 
 	* contributed by the original author
 
+   <74> protobuf parser
+
+	* Merged after getting approval from the original author
+
    <67> Objective C language parser
 
 	* This is the implementation we have in universal-ctags tree.
@@ -247,6 +253,10 @@ Patches are always there. So it is easy to evaluate the value:)
 	* Fixed in universal-ctags tree, however the ticket is still open::
 
 		d2bdf505abb7569deae2b50305ea1edce6208557
+
+   <55> TTCN-3 support
+
+	* contributed by the original author
 
    <51> Ada support
 
@@ -383,15 +393,13 @@ Some patches are maintained in ctags package of Debian.
 Inventory of patches are
 http://anonscm.debian.org/cgit/users/cjwatson/exuberant-ctags.git/tree/debian/patches/series
 
-(python-disable-imports.patch)
+<python-disable-imports.patch>
 
-	Not in universal-ctags tree.
+	universal-ctags tags Y in `import X as Y` and Z in `from X import Y as Z`
+	as definition tags. They are turned on by default.
+	The others are tagged as reference tags. reference tags are recorded only
+	when "r" extra tags are enabled. e.g. `--extras=+r`.
 	
-	I don't want to merge this patch. I think ctags should extract
-	as much as possible information from input source code.
-	The user has responsibility to filter out the noise.
-	The definition of noise is up to the user.
-
 <vim-command-loop.patch>
 
 	This patch was merged as an alternative for 

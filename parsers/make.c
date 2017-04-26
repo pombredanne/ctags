@@ -15,6 +15,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "make.h"
+
 #include "kind.h"
 #include "options.h"
 #include "parse.h"
@@ -23,29 +25,31 @@
 #include "vstring.h"
 #include "xtag.h"
 
+
 /*
 *   DATA DEFINITIONS
 */
 typedef enum {
-	K_MACRO, K_TARGET, K_INCLUDE
+	K_MACRO, K_TARGET, K_INCLUDE,
 } makeKind;
 
 typedef enum {
 	R_INCLUDE_GENERIC,
 	R_INCLUDE_OPTIONAL,
-} makeIncludeRole;
+} makeMakefileRole;
 
-static roleDesc MakeIncludeRoles [] = {
-	RoleTemplateGeneric,
-	{ TRUE, "optional", "included as an optional makefile"},
+static roleDesc MakeMakefileRoles [] = {
+	{ true, "included", "included" },
+	{ true, "optional", "optionally included"},
 };
 
-static kindOption MakeKinds [] = {
-	{ TRUE, 'm', "macro",  "macros"},
-	{ TRUE, 't', "target", "targets"},
-	{ TRUE, 'I', "include", "includes",
-	  .referenceOnly = TRUE, ATTACH_ROLES(MakeIncludeRoles)},
+static kindDefinition MakeKinds [] = {
+	{ true, 'm', "macro",  "macros"},
+	{ true, 't', "target", "targets"},
+	{ true, 'I', "makefile", "makefiles",
+	  .referenceOnly = true, ATTACH_ROLES(MakeMakefileRoles)},
 };
+
 
 /*
 *   FUNCTION DEFINITIONS
@@ -80,26 +84,43 @@ static int skipToNonWhite (int c)
 	return c;
 }
 
-static boolean isIdentifier (int c)
+static bool isIdentifier (int c)
 {
-	return (boolean)(c != '\0' && (isalnum (c)  ||  strchr (".-_/$(){}%", c) != NULL));
+	return (bool)(c != '\0' && (isalnum (c)  ||  strchr (".-_/$(){}%", c) != NULL));
 }
 
-static boolean isSpecialTarget (vString *const name)
+static bool isSpecialTarget (vString *const name)
 {
 	size_t i = 0;
 	/* All special targets begin with '.'. */
 	if (vStringLength (name) < 1 || vStringChar (name, i++) != '.') {
-		return FALSE;
+		return false;
 	}
 	while (i < vStringLength (name)) {
 		char ch = vStringChar (name, i++);
 		if (ch != '_' && !isupper (ch))
 		{
-			return FALSE;
+			return false;
 		}
 	}
-	return TRUE;
+	return true;
+}
+
+static void makeSimpleMakeTag (vString *const name, kindDefinition *MakeKinds, makeKind kind)
+{
+	if (!isLanguageEnabled (getInputLanguage ()))
+		return;
+
+	makeSimpleTag (name, MakeKinds, kind);
+}
+
+static void makeSimpleMakeRefTag (const vString* const name, kindDefinition* const kinds, const int kind,
+				  int roleIndex)
+{
+	if (!isLanguageEnabled (getInputLanguage ()))
+		return;
+
+	makeSimpleRefTag (name, kinds, kind, roleIndex);
 }
 
 static void newTarget (vString *const name)
@@ -109,26 +130,63 @@ static void newTarget (vString *const name)
 	{
 		return;
 	}
-	makeSimpleTag (name, MakeKinds, K_TARGET);
+	makeSimpleMakeTag (name, MakeKinds, K_TARGET);
 }
 
-static void newMacro (vString *const name)
+static void newMacro (vString *const name, bool with_define_directive, bool appending)
 {
-	makeSimpleTag (name, MakeKinds, K_MACRO);
+	subparser *s;
+
+	if (!appending)
+		makeSimpleMakeTag (name, MakeKinds, K_MACRO);
+
+	foreachSubparser(s, false)
+	{
+		makeSubparser *m = (makeSubparser *)s;
+		enterSubparser(s);
+		if (m->newMacroNotify)
+			m->newMacroNotify (m, vStringValue(name), with_define_directive, appending);
+		leaveSubparser();
+	}
 }
 
-static void newInclude (vString *const name, boolean optional)
+static void valueFound (vString *const name)
 {
-	if (isXtagEnabled (XTAG_REFERENCE_TAGS))
-		makeSimpleRefTag (name, MakeKinds, K_INCLUDE,
-				  optional? R_INCLUDE_OPTIONAL: R_INCLUDE_GENERIC);
+	subparser *s;
+	foreachSubparser(s, false)
+	{
+		makeSubparser *m = (makeSubparser *)s;
+		enterSubparser(s);
+		if (m->valueNotify)
+			m->valueNotify (m, vStringValue (name));
+		leaveSubparser();
+	}
 }
 
-static boolean isAcceptableAsInclude (vString *const name)
+static void directiveFound (vString *const name)
+{
+	subparser *s;
+	foreachSubparser (s, false)
+	{
+		makeSubparser *m = (makeSubparser *)s;
+		enterSubparser(s);
+		if (m->directiveNotify)
+			m->directiveNotify (m, vStringValue (name));
+		leaveSubparser();
+	}
+}
+
+static void newInclude (vString *const name, bool optional)
+{
+	makeSimpleMakeRefTag (name, MakeKinds, K_INCLUDE,
+			      optional? R_INCLUDE_OPTIONAL: R_INCLUDE_GENERIC);
+}
+
+static bool isAcceptableAsInclude (vString *const name)
 {
 	if (strcmp (vStringValue (name), "$") == 0)
-		return FALSE;
-	return TRUE;
+		return false;
+	return true;
 }
 
 static void readIdentifier (const int first, vString *const id)
@@ -138,7 +196,7 @@ static void readIdentifier (const int first, vString *const id)
 	vStringClear (id);
 	while (isIdentifier (c) || (depth > 0 && c != EOF && c != '\n'))
 	{
-		if (c == '(' || c == '}')
+		if (c == '(' || c == '{')
 			depth++;
 		else if (depth > 0 && (c == ')' || c == '}'))
 			depth--;
@@ -146,17 +204,23 @@ static void readIdentifier (const int first, vString *const id)
 		c = nextChar ();
 	}
 	ungetcToInputFile (c);
-	vStringTerminate (id);
 }
 
 static void findMakeTags (void)
 {
 	stringList *identifiers = stringListNew ();
-	boolean newline = TRUE;
-	boolean in_define = FALSE;
-	boolean in_rule = FALSE;
-	boolean variable_possible = TRUE;
+	bool newline = true;
+	bool in_define = false;
+	bool in_value  = false;
+	bool in_rule = false;
+	bool variable_possible = true;
+	bool appending = false;
 	int c;
+	subparser *sub;
+
+	sub = getSubparserRunningBaseparser();
+	if (sub)
+		chooseExclusiveSubparser (sub, NULL);
 
 	while ((c = nextChar ()) != EOF)
 	{
@@ -170,14 +234,17 @@ static void findMakeTags (void)
 					c = nextChar ();
 				}
 				else if (c != '\n')
-					in_rule = FALSE;
+					in_rule = false;
 			}
+			else if (in_value)
+				in_value = false;
+
 			stringListClear (identifiers);
-			variable_possible = (boolean)(!in_rule);
-			newline = FALSE;
+			variable_possible = (bool)(!in_rule);
+			newline = false;
 		}
 		if (c == '\n')
-			newline = TRUE;
+			newline = true;
 		else if (isspace (c))
 			continue;
 		else if (c == '#')
@@ -187,6 +254,13 @@ static void findMakeTags (void)
 			c = nextChar ();
 			ungetcToInputFile (c);
 			variable_possible = (c == '=');
+		}
+		else if (variable_possible && c == '+')
+		{
+			c = nextChar ();
+			ungetcToInputFile (c);
+			variable_possible = (c == '=');
+			appending = true;
 		}
 		else if (variable_possible && c == ':' &&
 				 stringListCount (identifiers) > 0)
@@ -199,15 +273,17 @@ static void findMakeTags (void)
 				for (i = 0; i < stringListCount (identifiers); i++)
 					newTarget (stringListItem (identifiers, i));
 				stringListClear (identifiers);
-				in_rule = TRUE;
+				in_rule = true;
 			}
 		}
 		else if (variable_possible && c == '=' &&
 				 stringListCount (identifiers) == 1)
 		{
-			newMacro (stringListItem (identifiers, 0));
-			skipLine ();
-			in_rule = FALSE;
+			newMacro (stringListItem (identifiers, 0), false, appending);
+
+			in_value = true;
+			in_rule = false;
+			appending = false;
 		}
 		else if (variable_possible && isIdentifier (c))
 		{
@@ -215,15 +291,18 @@ static void findMakeTags (void)
 			readIdentifier (c, name);
 			stringListAdd (identifiers, name);
 
+			if (in_value)
+				valueFound(name);
+
 			if (stringListCount (identifiers) == 1)
 			{
 				if (in_define && ! strcmp (vStringValue (name), "endef"))
-					in_define = FALSE;
+					in_define = false;
 				else if (in_define)
 					skipLine ();
 				else if (! strcmp (vStringValue (name), "define"))
 				{
-					in_define = TRUE;
+					in_define = true;
 					c = skipToNonWhite (nextChar ());
 					vStringClear (name);
 					/* all remaining characters on the line are the name -- even spaces */
@@ -234,9 +313,9 @@ static void findMakeTags (void)
 					}
 					if (c == '\n')
 						ungetcToInputFile (c);
-					vStringTerminate (name);
 					vStringStripTrailing (name);
-					newMacro (name);
+
+					newMacro (name, true, false);
 				}
 				else if (! strcmp (vStringValue (name), "export"))
 					stringListClear (identifiers);
@@ -244,7 +323,7 @@ static void findMakeTags (void)
 					 || ! strcmp (vStringValue (name), "sinclude")
 					 || ! strcmp (vStringValue (name), "-include"))
 				{
-					boolean optional = (vStringValue (name)[0] == 'i')? FALSE: TRUE;
+					bool optional = (vStringValue (name)[0] == 'i')? false: true;
 					while (1)
 					{
 						c = skipToNonWhite (nextChar ());
@@ -270,25 +349,27 @@ static void findMakeTags (void)
 							break;
 					}
 				}
+				else
+					directiveFound (name);
 			}
 		}
 		else
-			variable_possible = FALSE;
+			variable_possible = false;
 	}
+
 	stringListDelete (identifiers);
 }
+
 
 extern parserDefinition* MakefileParser (void)
 {
 	static const char *const patterns [] = { "[Mm]akefile", "GNUmakefile", NULL };
 	static const char *const extensions [] = { "mak", "mk", NULL };
 	parserDefinition* const def = parserNew ("Make");
-	def->kinds      = MakeKinds;
+	def->kindTable      = MakeKinds;
 	def->kindCount  = ARRAY_SIZE (MakeKinds);
 	def->patterns   = patterns;
 	def->extensions = extensions;
 	def->parser     = findMakeTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

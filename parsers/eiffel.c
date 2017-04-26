@@ -33,8 +33,8 @@
 #define isident(c)            (isalnum(c) || (c) == '_')
 #define isFreeOperatorChar(c) ((c) == '@' || (c) == '#' || \
                                (c) == '|' || (c) == '&')
-#define isType(token,t)       (boolean) ((token)->type == (t))
-#define isKeyword(token,k)    (boolean) ((token)->keyword == (k))
+#define isType(token,t)       (bool) ((token)->type == (t))
+#define isKeyword(token,k)    (bool) ((token)->keyword == (k))
 
 /*
 *   DATA DECLARATIONS
@@ -42,26 +42,72 @@
 
 /*  Used to specify type of keyword.
  */
-typedef enum eKeywordId {
-	KEYWORD_NONE = -1,
-	KEYWORD_alias, KEYWORD_all, KEYWORD_and,
-	KEYWORD_as, KEYWORD_assign, KEYWORD_attached,
-	KEYWORD_check, KEYWORD_class, KEYWORD_convert, KEYWORD_create,
-	KEYWORD_creation, KEYWORD_Current,
-	KEYWORD_debug, KEYWORD_deferred, KEYWORD_detachable, KEYWORD_do,
-	KEYWORD_else, KEYWORD_elseif, KEYWORD_end, KEYWORD_ensure,
-	KEYWORD_expanded, KEYWORD_export, KEYWORD_external,
-	KEYWORD_false, KEYWORD_feature, KEYWORD_from, KEYWORD_frozen,
-	KEYWORD_if, KEYWORD_implies,
-	KEYWORD_indexing, KEYWORD_infix, KEYWORD_inherit, KEYWORD_inspect,
-	KEYWORD_invariant, KEYWORD_is, KEYWORD_like, KEYWORD_local,
-	KEYWORD_loop, KEYWORD_not, KEYWORD_obsolete, KEYWORD_old, KEYWORD_once,
-	KEYWORD_or, KEYWORD_prefix, KEYWORD_redefine, KEYWORD_rename,
-	KEYWORD_require, KEYWORD_rescue, KEYWORD_Result, KEYWORD_retry,
-	KEYWORD_select, KEYWORD_separate, KEYWORD_strip, KEYWORD_then,
-	KEYWORD_true, KEYWORD_undefine, KEYWORD_unique, KEYWORD_until,
-	KEYWORD_variant, KEYWORD_when, KEYWORD_xor
-} keywordId;
+enum eKeywordId {
+	KEYWORD_across,
+	KEYWORD_alias,
+	KEYWORD_all,
+	KEYWORD_and,
+	KEYWORD_as,
+	KEYWORD_assign,
+	KEYWORD_attached,
+	KEYWORD_attribute,
+	KEYWORD_check,
+	KEYWORD_class,
+	KEYWORD_convert,
+	KEYWORD_create,
+	KEYWORD_creation,
+	KEYWORD_Current,
+	KEYWORD_debug,
+	KEYWORD_deferred,
+	KEYWORD_detachable,
+	KEYWORD_do,
+	KEYWORD_else,
+	KEYWORD_elseif,
+	KEYWORD_end,
+	KEYWORD_ensure,
+	KEYWORD_expanded,
+	KEYWORD_export,
+	KEYWORD_external,
+	KEYWORD_false,
+	KEYWORD_feature,
+	KEYWORD_from,
+	KEYWORD_frozen,
+	KEYWORD_if,
+	KEYWORD_implies,
+	KEYWORD_infix,
+	KEYWORD_inherit,
+	KEYWORD_inspect,
+	KEYWORD_invariant,
+	KEYWORD_is,
+	KEYWORD_like,
+	KEYWORD_local,
+	KEYWORD_loop,
+	KEYWORD_not,
+	KEYWORD_note,
+	KEYWORD_obsolete,
+	KEYWORD_old,
+	KEYWORD_once,
+	KEYWORD_or,
+	KEYWORD_prefix,
+	KEYWORD_redefine,
+	KEYWORD_rename,
+	KEYWORD_require,
+	KEYWORD_rescue,
+	KEYWORD_Result,
+	KEYWORD_retry,
+	KEYWORD_select,
+	KEYWORD_separate,
+	KEYWORD_strip,
+	KEYWORD_then,
+	KEYWORD_true,
+	KEYWORD_undefine,
+	KEYWORD_unique,
+	KEYWORD_until,
+	KEYWORD_variant,
+	KEYWORD_when,
+	KEYWORD_xor
+};
+typedef int keywordId; /* to allow KEYWORD_NONE */
 
 typedef enum eTokenType {
 	TOKEN_EOF,
@@ -92,7 +138,7 @@ typedef enum eTokenType {
 typedef struct sTokenInfo {
 	tokenType type;
 	keywordId keyword;
-	boolean   isExported;
+	bool   isExported;
 	vString*  string;
 	vString*  className;
 	vString*  featureName;
@@ -108,20 +154,22 @@ typedef enum {
 	EKIND_CLASS, EKIND_FEATURE, EKIND_LOCAL, EKIND_QUALIFIED_TAGS
 } eiffelKind;
 
-static kindOption EiffelKinds [] = {
-	{ TRUE,  'c', "class",   "classes"},
-	{ TRUE,  'f', "feature", "features"},
-	{ FALSE, 'l', "local",   "local entities"}
+static kindDefinition EiffelKinds [] = {
+	{ true,  'c', "class",   "classes"},
+	{ true,  'f', "feature", "features"},
+	{ false, 'l', "local",   "local entities"}
 };
 
-static const keywordTable const EiffelKeywordTable [] = {
+static const keywordTable EiffelKeywordTable [] = {
 	/* keyword          keyword ID */
+	{ "across",         KEYWORD_across     },
 	{ "alias",          KEYWORD_alias      },
 	{ "all",            KEYWORD_all        },
 	{ "and",            KEYWORD_and        },
 	{ "as",             KEYWORD_as         },
 	{ "assign",         KEYWORD_assign     },
 	{ "attached",       KEYWORD_attached   },
+	{ "attribute",      KEYWORD_attribute  },
 	{ "check",          KEYWORD_check      },
 	{ "class",          KEYWORD_class      },
 	{ "convert",        KEYWORD_convert    },
@@ -145,9 +193,10 @@ static const keywordTable const EiffelKeywordTable [] = {
 	{ "frozen",         KEYWORD_frozen     },
 	{ "if",             KEYWORD_if         },
 	{ "implies",        KEYWORD_implies    },
-	{ "indexing",       KEYWORD_indexing   },
+	{ "indexing",       KEYWORD_note       },
 	{ "infix",          KEYWORD_infix      },
 	{ "inherit",        KEYWORD_inherit    },
+	{ "insert",         KEYWORD_inherit    },
 	{ "inspect",        KEYWORD_inspect    },
 	{ "invariant",      KEYWORD_invariant  },
 	{ "is",             KEYWORD_is         },
@@ -155,6 +204,7 @@ static const keywordTable const EiffelKeywordTable [] = {
 	{ "local",          KEYWORD_local      },
 	{ "loop",           KEYWORD_loop       },
 	{ "not",            KEYWORD_not        },
+	{ "note",           KEYWORD_note       },
 	{ "obsolete",       KEYWORD_obsolete   },
 	{ "old",            KEYWORD_old        },
 	{ "once",           KEYWORD_once       },
@@ -211,7 +261,9 @@ static void makeEiffelFeatureTag (tokenInfo *const token)
 
 		initTagEntry (&e, name, &(EiffelKinds [EKIND_FEATURE]));
 
-		e.isFileScope = (boolean) (! token->isExported);
+		e.isFileScope = (bool) (! token->isExported);
+		if (e.isFileScope)
+			markTagExtraBit (&e, XTAG_FILE_SCOPE);
 		e.extensionFields.scopeKind = &(EiffelKinds [EKIND_CLASS]);
 		e.extensionFields.scopeName = vStringValue (token->className);
 
@@ -223,6 +275,7 @@ static void makeEiffelFeatureTag (tokenInfo *const token)
 			vStringPut (qualified, '.');
 			vStringCat (qualified, token->string);
 			e.name = vStringValue (qualified);
+			markTagExtraBit (&e, XTAG_QUALIFIED_TAGS);
 			makeTagEntry (&e);
 			vStringDelete (qualified);
 		}
@@ -240,7 +293,8 @@ static void makeEiffelLocalTag (tokenInfo *const token)
 
 		initTagEntry (&e, name, &(EiffelKinds [EKIND_LOCAL]));
 
-		e.isFileScope = TRUE;
+		e.isFileScope = true;
+		markTagExtraBit (&e, XTAG_FILE_SCOPE);
 
 		vStringCopy (scope, token->className);
 		vStringPut (scope, '.');
@@ -291,7 +345,6 @@ static vString *parseInteger (int c)
 		vStringPut (string, c);
 		c = getcFromInputFile ();
 	}
-	vStringTerminate (string);
 	ungetcToInputFile (c);
 
 	return string;
@@ -322,8 +375,6 @@ static vString *parseNumeric (int c)
 	}
 	else if (!isspace (c))
 		ungetcToInputFile (c);
-
-	vStringTerminate (string);
 
 	return string;
 }
@@ -394,9 +445,9 @@ static int parseCharacter (void)
 
 static void parseString (vString *const string)
 {
-	boolean verbatim = FALSE;
-	boolean align = FALSE;
-	boolean end = FALSE;
+	bool verbatim = false;
+	bool align = false;
+	bool end = false;
 	vString *verbatimCloser = vStringNew ();
 	vString *lastLine = vStringNew ();
 	int prev = '\0';
@@ -406,13 +457,13 @@ static void parseString (vString *const string)
 	{
 		c = getcFromInputFile ();
 		if (c == EOF)
-			end = TRUE;
+			end = true;
 		else if (c == '"')
 		{
 			if (! verbatim)
-				end = TRUE;
+				end = true;
 			else
-				end = (boolean) (strcmp (vStringValue (lastLine),
+				end = (bool) (strcmp (vStringValue (lastLine),
 				                         vStringValue (verbatimCloser)) == 0);
 		}
 		else if (c == '\n')
@@ -421,7 +472,7 @@ static void parseString (vString *const string)
 				vStringClear (lastLine);
 			if (prev == '[' /* ||  prev == '{' */)
 			{
-				verbatim = TRUE;
+				verbatim = true;
 				vStringClear (verbatimCloser);
 				vStringClear (lastLine);
 				if (prev == '{')
@@ -429,7 +480,7 @@ static void parseString (vString *const string)
 				else
 				{
 					vStringPut (verbatimCloser, ']');
-					align = TRUE;
+					align = true;
 				}
 				vStringNCat (verbatimCloser, string, vStringLength (string) - 1);
 				vStringClear (string);
@@ -447,14 +498,10 @@ static void parseString (vString *const string)
 		{
 			vStringPut (string, c);
 			if (verbatim)
-			{
 				vStringPut (lastLine, c);
-				vStringTerminate (lastLine);
-			}
 			prev = c;
 		}
 	}
-	vStringTerminate (string);
 	vStringDelete (lastLine);
 	vStringDelete (verbatimCloser);
 }
@@ -471,7 +518,6 @@ static void parseIdentifier (vString *const string, const int firstChar)
 		c = getcFromInputFile ();
 	} while (isident (c));
 
-	vStringTerminate (string);
 	if (!isspace (c))
 		ungetcToInputFile (c);  /* unget non-identifier character */
 }
@@ -486,7 +532,6 @@ static void parseFreeOperator (vString *const string, const int firstChar)
 		c = getcFromInputFile ();
 	} while (c > ' ');
 
-	vStringTerminate (string);
 	if (!isspace (c))
 		ungetcToInputFile (c);  /* unget non-identifier character */
 }
@@ -508,7 +553,7 @@ static tokenInfo *newToken (void)
 
 	token->type			= TOKEN_UNDEFINED;
 	token->keyword		= KEYWORD_NONE;
-	token->isExported	= TRUE;
+	token->isExported	= true;
 
 	token->string = vStringNew ();
 	token->className = vStringNew ();
@@ -639,7 +684,7 @@ getNextChar:
 			if (isalpha (c))
 			{
 				parseIdentifier (token->string, c);
-				token->keyword = analyzeToken (token->string, Lang_eiffel);
+				token->keyword = lookupCaseKeyword (vStringValue (token->string), Lang_eiffel);
 				if (isKeyword (token, KEYWORD_NONE))
 					token->type = TOKEN_IDENTIFIER;
 				else
@@ -667,30 +712,30 @@ getNextChar:
 *   Scanning functions
 */
 
-static boolean isIdentifierMatch (
+static bool isIdentifierMatch (
 		const tokenInfo *const token, const char *const name)
 {
-	return (boolean) (isType (token, TOKEN_IDENTIFIER)  &&
+	return (bool) (isType (token, TOKEN_IDENTIFIER)  &&
 		strcasecmp (vStringValue (token->string), name) == 0);
 }
 
-static boolean findToken (tokenInfo *const token, const tokenType type)
+static bool findToken (tokenInfo *const token, const tokenType type)
 {
 	while (! isType (token, type) && ! isType (token, TOKEN_EOF))
 		readToken (token);
 	return isType (token, type);
 }
 
-static boolean findKeyword (tokenInfo *const token, const keywordId keyword)
+static bool findKeyword (tokenInfo *const token, const keywordId keyword)
 {
 	while (! isKeyword (token, keyword) && ! isType (token, TOKEN_EOF))
 		readToken (token);
 	return isKeyword (token, keyword);
 }
 
-static boolean parseType (tokenInfo *const token);
+static bool parseType (tokenInfo *const token);
 
-static void parseGeneric (tokenInfo *const token, boolean declaration __unused__)
+static void parseGeneric (tokenInfo *const token, bool declaration CTAGS_ATTR_UNUSED)
 {
 	unsigned int depth = 0;
 
@@ -712,7 +757,7 @@ static void parseGeneric (tokenInfo *const token, boolean declaration __unused__
 	} while (depth > 0 && ! isType (token, TOKEN_EOF));
 }
 
-static boolean parseType (tokenInfo *const token)
+static bool parseType (tokenInfo *const token)
 {
 	tokenInfo* const id = newToken ();
 	copyToken (id, token);
@@ -740,13 +785,13 @@ static boolean parseType (tokenInfo *const token)
 		if (isType (id, TOKEN_IDENTIFIER))
 		{
 			if (isType (token, TOKEN_OPEN_BRACKET))
-				parseGeneric (token, FALSE);
+				parseGeneric (token, false);
 			else if ((strcmp ("BIT", vStringValue (id->string)) == 0))
 				readToken (token);  /* read token after number of bits */
 		}
 	}
 	deleteToken (id);
-	return TRUE;
+	return true;
 }
 
 static void parseEntityType (tokenInfo *const token)
@@ -768,6 +813,7 @@ static void parseLocal (tokenInfo *const token)
 	 */
 	while (! isKeyword (token, KEYWORD_do)  &&
 		   ! isKeyword (token, KEYWORD_once) &&
+		   ! isKeyword (token, KEYWORD_attribute) &&
 		   ! isType (token, TOKEN_EOF))
 	{
 		if (isType (token, TOKEN_IDENTIFIER))
@@ -780,15 +826,17 @@ static void parseLocal (tokenInfo *const token)
 
 static void findFeatureEnd (tokenInfo *const token)
 {
-	boolean isFound = isKeyword (token, KEYWORD_is);
+	bool isFound = isKeyword (token, KEYWORD_is);
 	if (isFound)
 		readToken (token);
 	switch (token->keyword)
 	{
+		case KEYWORD_attribute:
 		case KEYWORD_deferred:
 		case KEYWORD_do:
 		case KEYWORD_external:
 		case KEYWORD_local:
+		case KEYWORD_note:
 		case KEYWORD_obsolete:
 		case KEYWORD_once:
 		case KEYWORD_require:
@@ -802,6 +850,7 @@ static void findFeatureEnd (tokenInfo *const token)
 					case KEYWORD_check:
 					case KEYWORD_debug:
 					case KEYWORD_from:
+					case KEYWORD_across:
 					case KEYWORD_if:
 					case KEYWORD_inspect:
 						++depth;
@@ -834,22 +883,22 @@ static void findFeatureEnd (tokenInfo *const token)
 	}
 }
 
-static boolean readFeatureName (tokenInfo *const token)
+static bool readFeatureName (tokenInfo *const token)
 {
-	boolean isFeatureName = FALSE;
+	bool isFeatureName = false;
 
 	if (isKeyword (token, KEYWORD_frozen))
 		readToken (token);
 	if (isType (token, TOKEN_IDENTIFIER))
-		isFeatureName = TRUE;
+		isFeatureName = true;
 	else if (isKeyword (token, KEYWORD_assign))  /* legacy code */
-		isFeatureName = TRUE;
+		isFeatureName = true;
 	else if (isKeyword (token, KEYWORD_infix)  ||
 			isKeyword (token, KEYWORD_prefix))
 	{
 		readToken (token);
 		if (isType (token, TOKEN_STRING))
-			isFeatureName = TRUE;
+			isFeatureName = true;
 	}
 	return isFeatureName;
 }
@@ -860,12 +909,12 @@ static void parseArguments (tokenInfo *const token)
 		readToken (token);
 }
 
-static boolean parseFeature (tokenInfo *const token)
+static bool parseFeature (tokenInfo *const token)
 {
-	boolean found = FALSE;
+	bool found = false;
 	while (readFeatureName (token))
 	{
-		found = TRUE;
+		found = true;
 		makeEiffelFeatureTag (token);
 		readToken (token);
 		if (isType (token, TOKEN_COMMA))
@@ -901,11 +950,11 @@ static boolean parseFeature (tokenInfo *const token)
 
 static void parseExport (tokenInfo *const token)
 {
-	token->isExported = TRUE;
+	token->isExported = true;
 	readToken (token);
 	if (isType (token, TOKEN_OPEN_BRACE))
 	{
-		token->isExported = FALSE;
+		token->isExported = false;
 		while (! isType (token, TOKEN_CLOSE_BRACE) &&
 		       ! isType (token, TOKEN_EOF))
 		{
@@ -926,14 +975,14 @@ static void parseFeatureClauses (tokenInfo *const token)
 			parseExport (token);
 		if (! isKeyword (token, KEYWORD_feature) &&
 			! isKeyword (token, KEYWORD_invariant) &&
-			! isKeyword (token, KEYWORD_indexing))
+			! isKeyword (token, KEYWORD_note))
 		{
 			if (! parseFeature (token))
 				readToken (token);
 		}
 	} while (! isKeyword (token, KEYWORD_end) &&
 			 ! isKeyword (token, KEYWORD_invariant) &&
-			 ! isKeyword (token, KEYWORD_indexing) &&
+			 ! isKeyword (token, KEYWORD_note) &&
 			 ! isType (token, TOKEN_EOF));
 }
 
@@ -1029,7 +1078,7 @@ static void parseClass (tokenInfo *const token)
 	do
 	{
 		if (isType (token, TOKEN_OPEN_BRACKET))
-			parseGeneric (token, TRUE);
+			parseGeneric (token, true);
 		else if (! isType (token, TOKEN_KEYWORD))
 			readToken (token);
 		else switch (token->keyword)
@@ -1061,7 +1110,7 @@ extern parserDefinition* EiffelParser (void)
 {
 	static const char *const extensions [] = { "e", NULL };
 	parserDefinition* def = parserNew ("Eiffel");
-	def->kinds      = EiffelKinds;
+	def->kindTable      = EiffelKinds;
 	def->kindCount  = ARRAY_SIZE (EiffelKinds);
 	def->extensions = extensions;
 	def->parser     = findEiffelTags;
@@ -1070,5 +1119,3 @@ extern parserDefinition* EiffelParser (void)
 	def->keywordCount = ARRAY_SIZE (EiffelKeywordTable);
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

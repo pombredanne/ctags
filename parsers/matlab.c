@@ -17,7 +17,7 @@
 #include "routines.h"
 #include "selectors.h"
 
-static const tagRegexTable const matlabTagRegexTable [] = {
+static tagRegexTable matlabTagRegexTable [] = {
 	/* function [x,y,z] = asdf */
 	{ "^function[ \t]*\\[.*\\][ \t]*=[ \t]*([a-zA-Z0-9_]+)",
 	  "\\1", "f,function", NULL},
@@ -48,5 +48,3 @@ extern parserDefinition* MatLabParser (void)
 	def->selectLanguage = selectors;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

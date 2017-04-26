@@ -25,27 +25,7 @@
 /*
 *   MACROS
 */
-
-/* Define standard error destination
- */
-#ifndef errout
-# define errout	stderr
-#endif
-
-/*  Prevent warnings about unused variables in GCC. */
-#if defined (__GNUC__) && !defined (__GNUG__)
-# ifdef __MINGW32__
-#  define __unused__
-# else
-#  define __unused__ __attribute__((unused))
-# endif
-# define __printf__(s,f)  __attribute__((format (printf, s, f)))
-# define attr__noreturn __attribute__((__noreturn__))
-#else
-# define __unused__
-# define __printf__(s,f)
-# define attr__noreturn
-#endif
+#include "gcc-attr.h"
 
 /*
  *  Portability macros
@@ -74,20 +54,6 @@
 # include <stdbool.h>
 #endif
 
-#undef FALSE
-#undef TRUE
-#ifdef __cplusplus
-typedef bool boolean;
-#define FALSE false
-#define TRUE true
-#else
-typedef enum { FALSE, TRUE } boolean;
-#endif
-
-#if ! defined (HAVE_FGETPOS) && ! defined (fpos_t)
-# define fpos_t long
-#endif
-
 /*
 *   FUNCTION PROTOTYPES
 */
@@ -105,5 +71,3 @@ extern char *getenv (const char *);
 #endif
 
 #endif  /* CTAGS_MAIN_GENERAL_H */
-
-/* vi:set tabstop=4 shiftwidth=4: */

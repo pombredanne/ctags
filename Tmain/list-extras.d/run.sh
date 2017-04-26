@@ -3,4 +3,5 @@
 
 CTAGS=$1
 
-${CTAGS} --quiet --options=NONE --extra='*' --list-extras
+${CTAGS} --quiet --options=NONE --extras='*' --with-list-header --list-extras
+${CTAGS} --quiet --options=NONE --extras='*' --with-list-header --machinable --list-extras

@@ -1,8 +1,7 @@
 .. _xcmd:
 
-
 Extending ctags with *xcmd*
-======================================================================
+---------------------------------------------------------------------
 
 :Maintainer: Masatake YAMATO <yamato@redhat.com>
 
@@ -19,7 +18,7 @@ use ``--_allow-xcmd-in-homedir``. By putting this option to
 use ``--xcmd-<LANG>=COMMAND`` in *~/.ctags* or *~/.ctags/\**.
 
 Basic usage
----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 There are commands generating tags file specialized to a language.
 `CoffeeTags <https://github.com/lukaszkorecki/CoffeeTags>`_ is an
 example. CoffeeTags deals with scripts of coffee language. It is written in
@@ -69,13 +68,13 @@ To write a driver for a tags generator, please read
 -"xcmd protocol and writing a driver".
 
 xcmd v2.1 protocol and writing a driver
----------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is still experimental.
 The v1 protocol was obsoleted.
 
 list-kinds enumeration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 
 ctags invokes ``COMMAND`` specified with ``--xcmd-<LANG>=COMMAND``
 twice. Once when ctags starts and registers ``COMMAND`` for ``LANG``
@@ -134,7 +133,7 @@ Here is the example command line and output of ``coffeetags`` driver::
 
 
 Generating tags
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 After getting kinds related information from ``COMMAND``,
 ctags calls ``COMMAND`` with one argument, the name of input file::
 
@@ -149,7 +148,7 @@ when generating tags file.
 
 
 Note for tags format
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 
 Read `FORMAT <http://ctags.sourceforge.net/FORMAT>`_ about the
 expected format of xcmd output. Format 2 is expected. Sort is
@@ -157,7 +156,7 @@ done in ctags side if necessary.
 
 Tag lines in the output are merged to the final tags file with
 filtering; some fields in the tag lines may be dropped if user
-specifies ``--field=-`` option.
+specifies ``--fields=-`` option.
 
 In addition to real tag informations, Pseudo-tag lines started
 from ``!_TAG_`` are expected.
@@ -187,7 +186,7 @@ ctags merges the Pseudo-tag lines with ``!LANG`` suffix::
 	!_TAG_PROGRAM_VERSION!coffee	0.5.0	//
 
 Integration to the source tree
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 Put your xcmd driver under ``libexec/drivers``. This must be an executable;
 don't forget dong ``chmod a+x``.
 
@@ -230,8 +229,8 @@ Here is an example taken from ``data/optlib/coffee.ctags``::
 	<<... copyright notices are snipped ...>>
 	#
 	--langdef=coffee
-	--coffee-map=+.coffee
-	--coffee-xcmd=coffeetags
+	--map-coffee=+.coffee
+	--xcmd-coffee=coffeetags
 
 Finally you have to add these new two files to ``Makefile.in``.
 Add the name of driver file to ``DRIVERS`` variable like::
@@ -251,7 +250,7 @@ automatically when ctags starts.
 
 
 NOTE for writing a test case for xcmd
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................................................
 
 You may want to test the output merged from a xcmd.
 The test for xcmd should be conducted only if the xcmd

@@ -29,6 +29,7 @@
 # define PrintStatus(x)    if (debug(DEBUG_STATUS)) printf x;
 # ifdef NDEBUG
 #  define Assert(c)
+#  define AssertNotReached()
 # else
    /* based on glibc's assert.h __ASSERT_FUNCTION */
 #  if defined (__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 4))
@@ -39,11 +40,13 @@
 #   define ASSERT_FUNCTION ((const char*)0)
 #  endif
 #  define Assert(c) ((c) ? ((void)0) : debugAssert(#c, __FILE__, __LINE__, ASSERT_FUNCTION))
+#  define AssertNotReached() Assert(!"The control reaches unexpected place")
 # endif
 #else
 # define DebugStatement(x)
 # define PrintStatus(x)
 # define Assert(c)
+# define AssertNotReached()
 # ifndef NDEBUG
 #  define NDEBUG
 # endif
@@ -68,14 +71,12 @@ enum eDebugLevels {
 *   Function prototypes
 */
 extern void lineBreak (void);
-extern void debugPrintf (const enum eDebugLevels level, const char *const format, ...) __printf__ (2, 3);
+extern void debugPrintf (const enum eDebugLevels level, const char *const format, ...) CTAGS_ATTR_PRINTF (2, 3);
 extern void debugPutc (const int level, const int c);
-extern void debugParseNest (const boolean increase, const unsigned int level);
-extern void debugCppNest (const boolean begin, const unsigned int level);
-extern void debugCppIgnore (const boolean ignore);
+extern void debugParseNest (const bool increase, const unsigned int level);
+extern void debugCppNest (const bool begin, const unsigned int level);
+extern void debugCppIgnore (const bool ignore);
 extern void debugEntry (const tagEntryInfo *const tag);
 extern void debugAssert (const char *assertion, const char *file, unsigned int line, const char *function) attr__noreturn;
 
 #endif  /* CTAGS_MAIN_DEBUG_H */
-
-/* vi:set tabstop=4 shiftwidth=4: */

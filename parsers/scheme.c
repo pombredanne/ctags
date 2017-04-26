@@ -27,9 +27,9 @@ typedef enum {
 	K_FUNCTION, K_SET
 } schemeKind;
 
-static kindOption SchemeKinds [] = {
-	{ TRUE, 'f', "function", "functions" },
-	{ TRUE, 's', "set",      "sets" }
+static kindDefinition SchemeKinds [] = {
+	{ true, 'f', "function", "functions" },
+	{ true, 's', "set",      "sets" }
 };
 
 /*
@@ -50,7 +50,6 @@ static void readIdentifier (vString *const name, const unsigned char *cp)
 	/* Go till you get to white space or a syntactic break */
 	for (p = cp; *p != '\0' && *p != '(' && *p != ')' && !isspace (*p); p++)
 		vStringPut (name, (int) *p);
-	vStringTerminate (name);
 }
 
 static void findSchemeTags (void)
@@ -87,7 +86,7 @@ static void findSchemeTags (void)
 			(cp [1] == 'S' || cp [1] == 's') &&
 			(cp [2] == 'E' || cp [2] == 'e') &&
 			(cp [3] == 'T' || cp [3] == 't') &&
-			(cp [4] == '!' || cp [4] == '!') &&
+			(cp [4] == '!') &&
 			(isspace (cp [5]) || cp[5] == '\0'))
 		{
 			cp += 5;
@@ -118,12 +117,10 @@ extern parserDefinition* SchemeParser (void)
 		"gosh", "guile", NULL
 	};
 	parserDefinition* def = parserNew ("Scheme");
-	def->kinds      = SchemeKinds;
+	def->kindTable      = SchemeKinds;
 	def->kindCount  = ARRAY_SIZE (SchemeKinds);
 	def->extensions = extensions;
 	def->aliases    = aliases;
 	def->parser     = findSchemeTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */

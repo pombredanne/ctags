@@ -16,15 +16,11 @@
 
 #include <stdio.h>
 
-#include "vstring.h"
-
 /*
 *   FUNCTION PROTOTYPES
 */
 extern void addTotals (const unsigned int files, const long unsigned int lines, const long unsigned int bytes);
-extern boolean isDestinationStdout (void);
+extern bool isDestinationStdout (void);
 extern int main (int argc, char **argv);
 
 #endif  /* CTAGS_MAIN_MAIN_H */
-
-/* vi:set tabstop=4 shiftwidth=4: */

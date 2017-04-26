@@ -27,12 +27,12 @@ typedef enum {
 	K_CONST, K_CLASS, K_FUNCTION, K_SUB, K_DIM
 } aspKind;
 
-static kindOption AspKinds [] = {
-	{ TRUE, 'd', "constant",   "constants"},
-	{ TRUE, 'c', "class",      "classes"}, 
-	{ TRUE, 'f', "function",   "functions"},
-	{ TRUE, 's', "subroutine", "subroutines"},
-	{ TRUE, 'v', "variable",   "variables"}
+static kindDefinition AspKinds [] = {
+	{ true, 'd', "constant",   "constants"},
+	{ true, 'c', "class",      "classes"}, 
+	{ true, 'f', "function",   "functions"},
+	{ true, 's', "subroutine", "subroutines"},
+	{ true, 'v', "variable",   "variables"}
 };
 
 /*
@@ -130,7 +130,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_FUNCTION);
 					    vStringClear (name);
 					}
@@ -144,7 +143,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_SUB);
 					    vStringClear (name);
 					}
@@ -154,7 +152,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_DIM);
 					    vStringClear (name);
 					}
@@ -177,7 +174,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_FUNCTION);
 					    vStringClear (name);
 					}
@@ -191,7 +187,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_SUB);
 					    vStringClear (name);
 					}
@@ -201,7 +196,6 @@ static void findAspTags (void)
 						    vStringPut (name, (int) *cp);
 						    ++cp;
 					    }
-					    vStringTerminate (name);
 					    makeSimpleTag (name, AspKinds, K_DIM);
 					    vStringClear (name);
 					}
@@ -222,7 +216,6 @@ static void findAspTags (void)
 						vStringPut (name, (int) *cp);
 						++cp;
 					}
-					vStringTerminate (name);
 					makeSimpleTag (name, AspKinds, K_FUNCTION);
 					vStringClear (name);
 				}
@@ -241,7 +234,6 @@ static void findAspTags (void)
 						vStringPut (name, (int) *cp);
 						++cp;
 					}
-					vStringTerminate (name);
 					makeSimpleTag (name, AspKinds, K_SUB);
 					vStringClear (name);
 				}
@@ -260,7 +252,6 @@ static void findAspTags (void)
 						vStringPut (name, (int) *cp);
 						++cp;
 					}
-					vStringTerminate (name);
 					makeSimpleTag (name, AspKinds, K_DIM);
 					vStringClear (name);
 				}
@@ -279,7 +270,6 @@ static void findAspTags (void)
 						vStringPut (name, (int) *cp);
 						++cp;
 					}
-					vStringTerminate (name);
 					makeSimpleTag (name, AspKinds, K_CLASS);
 					vStringClear (name);
 				}
@@ -298,7 +288,6 @@ static void findAspTags (void)
 						vStringPut (name, (int) *cp);
 						++cp;
 					}
-					vStringTerminate (name);
 					makeSimpleTag (name, AspKinds, K_CONST);
 					vStringClear (name);
 				}
@@ -316,12 +305,9 @@ extern parserDefinition* AspParser (void)
 {
 	static const char *const extensions [] = { "asp", "asa", NULL };
 	parserDefinition* def = parserNew ("Asp");
-	def->kinds      = AspKinds;
+	def->kindTable      = AspKinds;
 	def->kindCount  = ARRAY_SIZE (AspKinds);
 	def->extensions = extensions;
 	def->parser     = findAspTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */
-

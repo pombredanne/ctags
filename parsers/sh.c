@@ -34,24 +34,24 @@ typedef enum {
 
 typedef enum {
 	R_SOURCE_GENERIC,
-} shSourceRole;
+} shScriptRole;
 
-static roleDesc ShSourceRoles [] = {
-	RoleTemplateGeneric,
+static roleDesc ShScriptRoles [] = {
+	{ true, "loaded", "loaded" },
 };
 
-static kindOption ShKinds [] = {
-	{ TRUE, 'a', "alias", "aliases"},
-	{ TRUE, 'f', "function", "functions"},
-	{ TRUE, 's', "source", "read files",
-	  .referenceOnly = TRUE, ATTACH_ROLES (ShSourceRoles) },
+static kindDefinition ShKinds [] = {
+	{ true, 'a', "alias", "aliases"},
+	{ true, 'f', "function", "functions"},
+	{ true, 's', "script", "script files",
+	  .referenceOnly = true, ATTACH_ROLES (ShScriptRoles) },
 };
 
 /*
 *   FUNCTION DEFINITIONS
 */
 
-static boolean isFileChar  (int c)
+static bool isFileChar  (int c)
 {
 	return (isalnum (c)
 		|| c == '_' || c == '-'
@@ -61,9 +61,22 @@ static boolean isFileChar  (int c)
 		|| c == '~');
 }
 
-static boolean isIdentChar (int c)
+static bool isIdentChar (int c)
 {
 	return (isalnum (c) || c == '_' || c == '-');
+}
+
+/* bash allows all kinds of crazy stuff as the identifier after 'function' */
+static bool isBashFunctionChar (int c)
+{
+	return (c > 1 /* NUL and SOH are disallowed */ && c != 0x7f &&
+	        /* blanks are disallowed, but VT and FF (and CR to some extent, but
+	         * let's not fall into the pit of craziness) */
+	        c != ' ' && c != '\t' && c != '\n' && c != '\r' &&
+	        c != '"' && c != '\'' && c != '$' && c != '`' && c != '\\' &&
+	        c != '&' && c != ';' &&
+	        c != '(' && c != ')' &&
+	        c != '<' && c != '>');
 }
 
 static const unsigned char *skipDoubleString (const unsigned char *cp)
@@ -91,8 +104,8 @@ static void findShTags (void)
 	vString *name = vStringNew ();
 	const unsigned char *line;
 	vString *hereDocDelimiter = NULL;
-	boolean hereDocIndented = FALSE;
-	boolean (* check_char)(int);
+	bool hereDocIndented = false;
+	bool (* check_char)(int);
 
 	while ((line = readLineFromInputFile ()) != NULL)
 	{
@@ -132,15 +145,15 @@ static void findShTags (void)
 			else if (cp[0] == '<' && cp[1] == '<')
 			{
 				const unsigned char *start, *end;
-				boolean trimEscapeSequences = FALSE;
-				boolean quoted = FALSE;
+				bool trimEscapeSequences = false;
+				bool quoted = false;
 				cp += 2;
 				/* an optional "-" strips leading tabulations from the heredoc lines */
 				if (*cp != '-')
-					hereDocIndented = FALSE;
+					hereDocIndented = false;
 				else
 				{
-					hereDocIndented = TRUE;
+					hereDocIndented = true;
 					cp++;
 				}
 				while (isspace (*cp))
@@ -153,14 +166,14 @@ static void findShTags (void)
 					end = cp = skipDoubleString (cp);
 					/* we need not to worry about variable substitution, they
 					 * don't happen in heredoc delimiter definition */
-					trimEscapeSequences = TRUE;
-					quoted = TRUE;
+					trimEscapeSequences = true;
+					quoted = true;
 				}
 				else if (*cp == '\'')
 				{
 					start++;
 					end = cp = skipSingleString (cp);
-					quoted = TRUE;
+					quoted = true;
 				}
 				else
 				{
@@ -185,16 +198,18 @@ static void findShTags (void)
 				}
 			}
 
+			check_char = isBashFunctionChar;
+
 			if (strncmp ((const char*) cp, "function", (size_t) 8) == 0  &&
 				isspace ((int) cp [8]))
 			{
 				found_kind = K_FUNCTION;
 				cp += 8;
 			}
-
 			else if (strncmp ((const char*) cp, "alias", (size_t) 5) == 0  &&
 				isspace ((int) cp [5]))
 			{
+				check_char = isIdentChar;
 				found_kind = K_ALIAS;
 				cp += 5;
 			}
@@ -213,16 +228,14 @@ static void findShTags (void)
 					found_kind = K_SOURCE;
 					cp += 6;
 				}
+				if (found_kind == K_SOURCE)
+					check_char = isFileChar;
 			}
 			if (found_kind != K_NOTHING)
 				while (isspace ((int) *cp))
 					++cp;
 
 			// Get the name of the function, alias or file to be read by source
-			check_char = isIdentChar;
-			if (found_kind == K_SOURCE)
-				check_char = isFileChar;
-
 			if (! check_char ((int) *cp))
 			{
 				found_kind = K_NOTHING;
@@ -235,7 +248,6 @@ static void findShTags (void)
 				vStringPut (name, (int) *cp);
 				++cp;
 			}
-			vStringTerminate (name);
 
 			while (isspace ((int) *cp))
 				++cp;
@@ -281,12 +293,10 @@ extern parserDefinition* ShParser (void)
 		NULL
 	};
 	parserDefinition* def = parserNew ("Sh");
-	def->kinds      = ShKinds;
+	def->kindTable      = ShKinds;
 	def->kindCount  = ARRAY_SIZE (ShKinds);
 	def->extensions = extensions;
 	def->aliases = aliases;
 	def->parser     = findShTags;
 	return def;
 }
-
-/* vi:set tabstop=4 shiftwidth=4: */
