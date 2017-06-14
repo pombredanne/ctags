@@ -46,7 +46,6 @@
 	BasicParser, \
 	BetaParser, \
 	ClojureParser, \
-	CoffeeScriptParser, \
 	CParser, \
 	CppParser, \
 	CPreProParser, \
@@ -61,7 +60,7 @@
 	DTSParser, \
 	DosBatchParser, \
 	EiffelParser, \
-  ElmParser, \
+	ElmParser, \
 	ErlangParser, \
 	FalconParser, \
 	FlexParser, \
@@ -69,7 +68,8 @@
 	GdbinitParser, \
 	GoParser, \
 	HtmlParser, \
-        IniconfParser, \
+	IniconfParser, \
+	ITclParser, \
 	JavaParser, \
 	JavaPropertiesParser, \
 	JavaScriptParser, \
@@ -86,6 +86,7 @@
 	OldCppParser, \
 	OldCParser, \
 	OcamlParser, \
+	PasswdParser, \
 	PascalParser, \
 	PerlParser, \
 	Perl6Parser, \
@@ -94,6 +95,7 @@
 	ProtobufParser, \
 	PythonParser, \
 	PythonLoggingConfigParser, \
+	QemuHXParser, \
 	RParser, \
 	RSpecParser, \
 	RexxParser, \
@@ -109,6 +111,7 @@
 	SqlParser, \
 	SystemdUnitParser, \
 	TclParser, \
+	TclOOParser, \
 	TexParser, \
 	TTCNParser, \
 	VeraParser, \

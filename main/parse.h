@@ -51,7 +51,7 @@ typedef void (*parserInitialize) (langType language);
 
    The finalizer is called even when the initializer of the
    same parser is called or not. However, the finalizer can know
-   whether the assoiciated initializer is invoked or not with the
+   whether the associated initializer is invoked or not with the
    second parameter: INITIALIZED. If it is true, the initializer
    is called. */
 typedef void (*parserFinalize) (langType language, bool initialized);
@@ -59,9 +59,7 @@ typedef void (*parserFinalize) (langType language, bool initialized);
 typedef enum {
 	METHOD_NOT_CRAFTED    = 1 << 0,
 	METHOD_REGEX          = 1 << 1,
-	METHOD_XCMD           = 1 << 2,
-	METHOD_XCMD_AVAILABLE = 1 << 3,
-	METHOD_XPATH          = 1 << 4,
+	METHOD_XPATH          = 1 << 2,
 } parsingMethod;
 
 typedef struct {
@@ -74,7 +72,6 @@ struct sParserDefinition {
 	char* name;                    /* name of language */
 	kindDefinition* kindTable;	   /* tag kinds handled by parser */
 	unsigned int kindCount;        /* size of `kinds' list */
-	char fileKindLetter;           /* kind for overriding the default fileKind */
 	const char *const *extensions; /* list of default extensions */
 	const char *const *patterns;   /* list of default file name patterns */
 	const char *const *aliases;    /* list of default aliases (alternative names) */
@@ -95,10 +92,10 @@ struct sParserDefinition {
 	tagXpathTableTable *tagXpathTableTable;
 	unsigned int tagXpathTableCount;
 	bool invisible;
-	fieldDefinition *fieldDefinitions;
-	unsigned int fieldDefinitionCount;
-	xtagDefinition *xtagDefinitions;
-	unsigned int xtagDefinitionCount;
+	fieldDefinition *fieldTable;
+	unsigned int fieldCount;
+	xtagDefinition *xtagTable;
+	unsigned int xtagCount;
 
 	parserDependency * dependencies;
 	unsigned int dependencyCount;
@@ -147,8 +144,9 @@ extern parserDefinition* parserNew (const char* name);
 extern bool doesLanguageAllowNullTag (const langType language);
 extern bool doesLanguageRequestAutomaticFQTag (const langType language);
 extern const char *getLanguageName (const langType language);
+/* kindIndex has to be explicitly signed because char is not signed in all platforms. */
 extern kindDefinition* getLanguageKindForLetter (const langType language, char kindLetter);
-extern kindDefinition* getLanguageKind(const langType language, char kindIndex);
+extern kindDefinition* getLanguageKind(const langType language, signed char kindIndex);
 extern int defineLanguageKind (const langType language, kindDefinition *def,
 							   freeKindDefFunc freeKindDef);
 extern langType getNamedLanguage (const char *const name, size_t len);
@@ -179,7 +177,6 @@ extern void initializeParsing (void);
 extern void initializeParser (langType language);
 extern unsigned int countParsers (void);
 extern void freeParserResources (void);
-extern void printLanguageFileKind (const langType language);
 extern void printLanguageKinds (const langType language, bool allKindFields);
 extern void printLanguageRoles (const langType language, const char* letters);
 extern void printLanguageAliases (const langType language);
@@ -218,23 +215,6 @@ extern void matchLanguageMultilineRegex (const langType language, const vString*
 
 extern unsigned int   getXpathFileSpecCount (const langType language);
 extern xpathFileSpec* getXpathFileSpec (const langType language, unsigned int nth);
-
-#ifdef HAVE_COPROC
-extern bool invokeXcmd (const char* const fileName, const langType language);
-#endif
-extern void addLanguageXcmd (const langType language, const char* const path);
-extern void addTagXcmd (const langType language, vString* pathvstr, const char* flaggs);
-extern void resetXcmdKinds (const langType language, bool mode);
-extern bool enableXcmdKind (const langType language, const int kind, const bool mode);
-extern bool enableXcmdKindLong (const langType language, const char *kindLong, const bool mode);
-extern bool isXcmdKindEnabled (const langType language, const int kind);
-extern bool hasXcmdKind (const langType language, const int kind);
-extern void printXcmdKinds (const langType language, bool allKindFields, bool indent,
-			    bool tabSeparated);
-extern void foreachXcmdKinds (const langType language, bool (* func) (kindDefinition*, void*), void *data);
-extern void freeXcmdResources (void);
-extern void useXcmdMethod (const langType language);
-extern void notifyAvailabilityXcmdMethod (const langType language);
 
 extern bool makeKindSeparatorsPseudoTags (const langType language,
 					     const ptagDesc *pdesc);

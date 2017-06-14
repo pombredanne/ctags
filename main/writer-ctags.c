@@ -40,7 +40,7 @@ tagWriter uCtagsWriter = {
 	.useStdoutByDefault = false,
 };
 
-static void *beginECtagsFile (tagWriter *writer, MIO * mio)
+static void *beginECtagsFile (tagWriter *writer CTAGS_ATTR_UNUSED, MIO * mio CTAGS_ATTR_UNUSED)
 {
 	static struct rejection rej;
 
@@ -49,7 +49,7 @@ static void *beginECtagsFile (tagWriter *writer, MIO * mio)
 	return &rej;
 }
 
-static bool endECTagsFile (tagWriter *writer, MIO * mio, const char* filename)
+static bool endECTagsFile (tagWriter *writer, MIO * mio CTAGS_ATTR_UNUSED, const char* filename CTAGS_ATTR_UNUSED)
 {
 	struct rejection *rej = writer->private;
 	return rej->rejectedInThisInput;
@@ -94,7 +94,6 @@ static int renderExtensionFieldMaybe (tagWriter *writer, int xftype, const tagEn
 static int addParserFields (tagWriter *writer, MIO * mio, const tagEntryInfo *const tag)
 {
 	unsigned int i;
-	unsigned int ftype;
 	int length = 0;
 	bool *reject = NULL;
 
@@ -106,14 +105,14 @@ static int addParserFields (tagWriter *writer, MIO * mio, const tagEntryInfo *co
 
 	for (i = 0; i < tag->usedParserFields; i++)
 	{
-		ftype = tag->parserFields [i].ftype;
-		if (! isFieldEnabled (ftype))
+		const tagField *f = getParserField(tag, i);
+		if (! isFieldEnabled (f->ftype))
 			continue;
 
 		length += mio_printf(mio, "\t%s:%s",
-							 getFieldName (ftype),
+							 getFieldName (f->ftype),
 							 renderFieldEscaped (writer->type,
-												 tag->parserFields [i].ftype, tag, i, reject));
+												 f->ftype, tag, i, reject));
 	}
 	return length;
 }

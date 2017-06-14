@@ -85,7 +85,7 @@ typedef struct {
 
 		/* Size of file (pointed to) */
 	unsigned long size;
-} fileStatus; 
+} fileStatus;
 
 /*
 *   FUNCTION PROTOTYPES
@@ -105,6 +105,7 @@ extern void *eMalloc (const size_t size);
 extern void *eCalloc (const size_t count, const size_t size);
 extern void *eRealloc (void *const ptr, const size_t size);
 extern void eFree (void *const ptr);
+extern void eFreeIndirect(void **ptr);
 
 /* String manipulation functions */
 extern int struppercmp (const char *s1, const char *s2);
@@ -120,9 +121,9 @@ extern void toUpperString (char* str);
 extern char* newLowerString (const char* str);
 extern char* newUpperString (const char* str);
 extern bool strToUInt(const char *const str, int base, unsigned int *value);
-extern bool strToULong(const char *string, int base, unsigned long *value);
+extern bool strToULong(const char *const string, int base, unsigned long *value);
 extern bool strToInt(const char *const str, int base, int *value);
-extern bool strToLong(const char *string, int base, long *value);
+extern bool strToLong(const char *const string, int base, long *value);
 
 /* File system functions */
 extern void setCurrentDirectory (void);

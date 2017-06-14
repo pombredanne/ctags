@@ -12,7 +12,8 @@ OPTLIB2C = ./misc/optlib2c
 OBJEXT = o
 ALL_OBJS += $(REGEX_OBJS)
 ALL_OBJS += $(FNMATCH_OBJS)
-VPATH = . ./main ./parsers ./optlib ./read
+ALL_OBJS += $(WIN32_OBJS)
+VPATH = . ./main ./parsers ./optlib ./read ./win32
 
 ifeq (yes, $(WITH_ICONV))
 DEFINES += -DHAVE_ICONV
@@ -59,7 +60,7 @@ all: ctags.exe readtags.exe
 
 ctags: ctags.exe
 
-ctags.exe: $(ALL_OBJS) $(ALL_HEADS) $(REGEX_HEADS) $(FNMATCH_HEADS)
+ctags.exe: $(ALL_OBJS) $(ALL_HEADS) $(REGEX_HEADS) $(FNMATCH_HEADS) $(WIN32_HEADS)
 	$(V_CC) $(CC) $(OPT) $(CFLAGS) $(LDFLAGS) $(DEFINES) $(INCLUDES) -o $@ $(ALL_OBJS) $(LIBS)
 
 read/%.o: read/%.c
@@ -72,4 +73,4 @@ clean:
 	$(SILENT) echo Cleaning
 	$(SILENT) rm -f ctags.exe readtags.exe
 	$(SILENT) rm -f tags
-	$(SILENT) rm -f main/*.o parsers/*.o gnu_regex/*.o fnmatch/*.o read/*.o
+	$(SILENT) rm -f main/*.o optlib/*.o parsers/*.o parsers/cxx/*.o gnu_regex/*.o fnmatch/*.o read/*.o win32/mkstemp/*.o

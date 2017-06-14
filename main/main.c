@@ -75,6 +75,7 @@
 #include "read.h"
 #include "routines.h"
 #include "trace.h"
+#include "trashbox.h"
 #include "writer.h"
 
 #ifdef HAVE_JANSSON
@@ -493,7 +494,7 @@ static void batchMakeTags (cookedArgs *args, void *user CTAGS_ATTR_UNUSED)
 }
 
 #ifdef HAVE_JANSSON
-void interactiveLoop (cookedArgs *args, void *user CTAGS_ATTR_UNUSED)
+void interactiveLoop (cookedArgs *args CTAGS_ATTR_UNUSED, void *user CTAGS_ATTR_UNUSED)
 {
 	char buffer[1024];
 	json_t *request;
@@ -628,7 +629,9 @@ extern int main (int argc CTAGS_ATTR_UNUSED, char **argv)
 {
 	cookedArgs *args;
 
-	TRACE_INIT();
+	initDefaultTrashBox ();
+
+	DEBUG_INIT();
 
 	setErrorPrinter (stderrDefaultErrorPrinter, NULL);
 	setMainLoop (batchMakeTags, NULL);
@@ -663,10 +666,11 @@ extern int main (int argc CTAGS_ATTR_UNUSED, char **argv)
 	freeOptionResources ();
 	freeParserResources ();
 	freeRegexResources ();
-	freeXcmdResources ();
 #ifdef HAVE_ICONV
 	freeEncodingResources ();
 #endif
+
+	finiDefaultTrashBox();
 
 	if (Option.printLanguage)
 		return (Option.printLanguage == true)? 0: 1;

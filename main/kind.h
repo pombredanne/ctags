@@ -40,8 +40,6 @@ extern const char *renderRole (const roleDesc* const role, vString* b);
 #define KIND_FILE_DEFAULT 'F'
 #define KIND_FILE_DEFAULT_LONG "file"
 
-#define KIND_FILE_ALT '!'
-
 #define KIND_WILDCARD '*'
 
 typedef struct sScopeSeparator {
@@ -66,7 +64,7 @@ struct sKindDefinition {
 	/* Usage of `syncWith' field is a bit tricky.
 
 	   If `LANG_AUTO' is specified to `syncWith' field of a kind
-	   (target kind), the main part of ctags updtes the field with
+	   (target kind), the main part of ctags updates the field with
 	   the id of a  parser (master parser) when initializing
 	   parsers. It also updates `slave' and `master' fields.
 
@@ -99,7 +97,7 @@ extern struct kindControlBlock* allocKindControlBlock (parserDefinition *parser)
 extern void freeKindControlBlock (struct kindControlBlock* kcb);
 extern int  defineKind (struct kindControlBlock* kcb, kindDefinition *def,
 						freeKindDefFunc freeKindDef);
-extern int countKinds (struct kindControlBlock* kcb);
+extern unsigned int countKinds (struct kindControlBlock* kcb);
 extern kindDefinition *getKind (struct kindControlBlock* kcb, int kindIndex);
 extern kindDefinition *getKindForLetter (struct kindControlBlock* kcb, int letter);
 extern kindDefinition *getKindForName (struct kindControlBlock* kcb, const char* name);

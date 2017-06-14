@@ -24,6 +24,7 @@
 #include "read.h"
 #include "vstring.h"
 #include "parse.h"
+#include "trashbox.h"
 #include "xtag.h"
 
 #include "cxx/cxx_debug.h"
@@ -1255,7 +1256,7 @@ static hashTable * defineMacroTable;
 
 /*  Determines whether or not "name" should be ignored, per the ignore list.
  */
-extern const cppMacroInfo * cppFindMacro(const char * name)
+extern const cppMacroInfo * cppFindMacro(const char *const name)
 {
 	if(!defineMacroTable)
 		return NULL;
@@ -1638,7 +1639,7 @@ static void saveMacro(const char * macro)
 					while(*c == '#')
 						c++;
 
-					// we just skip this part and the followin spaces
+					// we just skip this part and the following spaces
 					while(*c && isspacetab(*c))
 						c++;
 
@@ -1704,21 +1705,25 @@ static void initializeCpp (const langType language)
 	Cpp.lang = language;
 
 	defineMacroTable = makeMacroTable ();
+	DEFAULT_TRASH_BOX(defineMacroTable,hashTableDelete);
 }
 
-static void CpreProInstallIgnoreToken (const langType language, const char *optname, const char *arg)
+static void CpreProInstallIgnoreToken (const langType language CTAGS_ATTR_UNUSED, const char *optname CTAGS_ATTR_UNUSED, const char *arg)
 {
 	if (arg == NULL || arg[0] == '\0')
 	{
+		DEFAULT_TRASH_BOX_TAKE_BACK(defineMacroTable);
 		hashTableDelete(defineMacroTable);
 		defineMacroTable = makeMacroTable ();
+		DEFAULT_TRASH_BOX(defineMacroTable,hashTableDelete);
+
 		verbose ("    clearing list\n");
 	} else {
 		saveIgnoreToken(arg);
 	}
 }
 
-static void CpreProInstallMacroToken (const langType language, const char *optname, const char *arg)
+static void CpreProInstallMacroToken (const langType language CTAGS_ATTR_UNUSED, const char *optname CTAGS_ATTR_UNUSED, const char *arg)
 {
 	if (arg == NULL || arg[0] == '\0')
 	{
@@ -1730,7 +1735,7 @@ static void CpreProInstallMacroToken (const langType language, const char *optna
 	}
 }
 
-static void CpreProSetIf0 (const langType language, const char *name, const char *arg)
+static void CpreProSetIf0 (const langType language CTAGS_ATTR_UNUSED, const char *name CTAGS_ATTR_UNUSED, const char *arg)
 {
 	if (strcmp (arg, "true") == 0)
 		doesExaminCodeWithInIf0Branch = true;

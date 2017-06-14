@@ -2,6 +2,8 @@
 
 check: tmain units
 
+clean-local: clean-units clean-tmain
+
 CTAGS_TEST = ./ctags$(EXEEXT)
 READ_TEST = ./readtags$(EXEEXT)
 TIMEOUT=
@@ -24,7 +26,6 @@ fuzz: $(CTAGS_TEST)
 	c="$(srcdir)/misc/units fuzz \
 		--ctags=$(CTAGS_TEST) \
 		--languages=$(LANGUAGES) \
-		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} --run-shrink \
 		--with-timeout=$(TIMEOUT)"; \
 	$(SHELL) $${c} $(srcdir)/Units
@@ -41,7 +42,6 @@ noise: $(CTAGS_TEST)
 	c="$(srcdir)/misc/units noise \
 		--ctags=$(CTAGS_TEST) \
 		--languages=$(LANGUAGES) \
-		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} --run-shrink \
 		--with-timeout=$(TIMEOUT)"; \
 	$(SHELL) $${c} $(srcdir)/Units
@@ -58,7 +58,6 @@ chop: $(CTAGS_TEST)
 	c="$(srcdir)/misc/units chop \
 		--ctags=$(CTAGS_TEST) \
 		--languages=$(LANGUAGES) \
-		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} --run-shrink \
 		--with-timeout=$(TIMEOUT)"; \
 	$(SHELL) $${c} $(srcdir)/Units
@@ -84,7 +83,6 @@ units: $(CTAGS_TEST)
 		--languages=$(LANGUAGES) \
 		--categories=$(CATEGORIES) \
 		--units=$(UNITS) \
-		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} --run-shrink \
 		--with-timeout=$(TIMEOUT) \
 		$${SHOW_DIFF_OUTPUT}"; \
@@ -114,7 +112,6 @@ tmain: $(CTAGS_TEST)
 	\
 	c="$(srcdir)/misc/units tmain \
 		--ctags=$(CTAGS_TEST) \
-		--libexecdir=$(srcdir)/libexec \
 		$${VALGRIND} \
 		$${SHOW_DIFF_OUTPUT}"; \
 	TRAVIS=$(TRAVIS) APPVEYOR=$(APPVEYOR) \
@@ -172,5 +169,5 @@ CPPCHECK_UNDEFS = -UDEBUG -UMIO_DEBUG -UCXX_DEBUGGING_ENABLED
 CPPCHECK_FLAGS  = --enable=all
 
 cppcheck:
-	cppcheck $(CPPCHECK_DEFS) $(CPPCHECK_UNDEFS) $(CPPCHECK_UNDEFS) $(CPPCHECK_FLAGS) \
+	cppcheck $(CPPCHECK_DEFS) $(CPPCHECK_UNDEFS) $(CPPCHECK_FLAGS) \
 		 $$(git  ls-files | grep '^\(parsers\|main\)/.*\.[ch]' )

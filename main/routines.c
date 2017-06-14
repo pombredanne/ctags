@@ -253,6 +253,15 @@ extern void eFree (void *const ptr)
 	free (ptr);
 }
 
+extern void eFreeIndirect(void **ptr)
+{
+	if (ptr && *ptr)
+	{
+		eFree (*ptr);
+		*ptr = NULL;
+	}
+}
+
 /*
  *  String manipulation functions
  */
@@ -547,7 +556,7 @@ static char *strRSeparator (const char *s)
 		last = s;
 		s++;
 	}
-	return last;
+	return (char*) last;
 #else
 	return strrchr (s, PATH_SEPARATOR);
 #endif

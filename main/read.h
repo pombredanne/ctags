@@ -58,7 +58,7 @@ extern unsigned long getInputLineNumber (void);
 extern int getInputLineOffset (void);
 extern const char *getInputFileName (void);
 extern MIOPos getInputFilePosition (void);
-extern MIOPos getInputFilePositionForLine (int line);
+extern MIOPos getInputFilePositionForLine (unsigned int line);
 extern langType getInputLanguage (void);
 extern const char *getInputLanguageName (void);
 extern const char *getInputFileTagPath (void);
@@ -75,7 +75,7 @@ extern bool isParserMarkedNoEmission (void);
 extern void freeInputFileResources (void);
 extern const unsigned char *getInputFileData (size_t *size);
 
-/* Stream opend by getMio can be passed to openInputFile as the 3rd
+/* Stream opened by getMio can be passed to openInputFile as the 3rd
    argument. If the 3rd argument is NULL, openInputFile calls getMio
    internally. The 3rd argument is introduced for reusing mio object
    created in parser guessing stage. */
@@ -99,7 +99,7 @@ enum nestedInputBoundaryFlag {
 extern unsigned int getNestedInputBoundaryInfo (unsigned long lineNumber);
 
 extern const char *getSourceFileTagPath (void);
-extern const char *getSourceLanguageName (void);
+extern langType getSourceLanguage (void);
 extern unsigned long getSourceLineNumber (void);
 
 /* Raw: reading from given a parameter, mio */

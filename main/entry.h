@@ -16,6 +16,7 @@
 #include "types.h"
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "field.h"
 #include "kind.h"
@@ -23,6 +24,7 @@
 #include "xtag.h"
 #include "mio.h"
 #include "nestlevel.h"
+#include "ptrarray.h"
 
 /*
 *   MACROS
@@ -36,6 +38,7 @@
 typedef struct sTagField {
 	fieldType  ftype;
 	const char* value;
+	bool valueOwner;			/* used only in parserFieldsDynamic */
 } tagField;
 
 /*  Information about the current tag candidate.
@@ -54,11 +57,12 @@ struct sTagEntryInfo {
 				       * (may be NULL if not present) *//*  */
 	unsigned int boundaryInfo;    /* info about nested input stream */
 	MIOPos      filePosition;     /* file position of line containing tag */
-	const char* language;         /* language of input file */
+	langType langType;         /* language of input file */
 	const char *inputFileName;   /* name of input file */
 	const char *name;             /* name of the tag */
 	const kindDefinition *kind;	      /* kind descriptor */
-	unsigned char extra[ ((XTAG_COUNT) / 8) + 1 ];
+	uint8_t extra[ ((XTAG_COUNT) / 8) + 1 ];
+	uint8_t *extraDynamic;		/* Dynamically allocated but freed by per parser TrashBox */
 
 	struct {
 		const char* access;
@@ -87,14 +91,20 @@ struct sTagEntryInfo {
 		unsigned long endLine;
 	} extensionFields;  /* list of extension fields*/
 
+	/* `usedParserFields' tracks how many parser own fields are
+	   used. If it is a few (less than PRE_ALLOCATED_PARSER_FIELDS),
+	   statically allocated parserFields is used. If more fields than
+	   PRE_ALLOCATED_PARSER_FIELDS is defined and attached, parserFieldsDynamic
+	   is used. */
+	unsigned int usedParserFields;
 #define PRE_ALLOCATED_PARSER_FIELDS 5
 #define NO_PARSER_FIELD -1
-	unsigned int usedParserFields;
 	tagField     parserFields [PRE_ALLOCATED_PARSER_FIELDS];
+	ptrArray *   parserFieldsDynamic;
 
 	/* Following source* fields are used only when #line is found
 	   in input and --line-directive is given in ctags command line. */
-	const char* sourceLanguage;
+	langType sourceLangType;
 	const char *sourceFileName;
 	unsigned long sourceLineNumberDifference;
 };
@@ -121,13 +131,13 @@ extern void initRefTagEntry (tagEntryInfo *const e, const char *const name,
 			     const kindDefinition *kind, int roleIndex);
 extern void initTagEntryFull (tagEntryInfo *const e, const char *const name,
 			      unsigned long lineNumber,
-			      const char* language,
+			      langType langType_,
 			      MIOPos      filePosition,
 			      const char *inputFileName,
 			      const kindDefinition *kind,
 			      int roleIndex,
 			      const char *sourceFileName,
-			      const char* sourceLanguage,
+			      langType sourceLangType,
 			      long sourceLineNumberDifference);
 extern int makeQualifiedTagEntry (const tagEntryInfo *const e);
 
@@ -170,5 +180,6 @@ extern bool isTagExtraBitMarked (const tagEntryInfo *const tag, xtagType extra);
 
 extern void attachParserField (tagEntryInfo *const tag, fieldType ftype, const char* value);
 extern void attachParserFieldToCorkEntry (int index, fieldType ftype, const char* value);
+extern const tagField* getParserField (const tagEntryInfo * tag, int index);
 
 #endif  /* CTAGS_MAIN_ENTRY_H */

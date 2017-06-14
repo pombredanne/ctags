@@ -36,7 +36,6 @@ MAIN_HEADS =			\
 	main/param.h		\
 	main/parse.h		\
 	main/parsers.h		\
-	main/pcoproc.h		\
 	main/promise.h		\
 	main/ptag.h		\
 	main/ptrarray.h		\
@@ -48,6 +47,7 @@ MAIN_HEADS =			\
 	main/subparser.h	\
 	main/trace.h		\
 	main/tokeninfo.h	\
+	main/trashbox.h		\
 	main/types.h		\
 	main/vstring.h		\
 	main/writer.h		\
@@ -67,7 +67,6 @@ MAIN_SRCS =				\
 	main/keyword.c			\
 	main/kind.c			\
 	main/lregex.c			\
-	main/lxcmd.c			\
 	main/lxpath.c			\
 	main/main.c			\
 	main/mbcs.c			\
@@ -76,7 +75,6 @@ MAIN_SRCS =				\
 	main/options.c			\
 	main/param.c			\
 	main/parse.c			\
-	main/pcoproc.c			\
 	main/promise.c			\
 	main/ptag.c			\
 	main/ptrarray.c			\
@@ -86,6 +84,7 @@ MAIN_SRCS =				\
 	main/sort.c			\
 	main/strlist.c			\
 	main/trace.c			\
+	main/trashbox.c			\
 	main/tokeninfo.c		\
 	main/vstring.c			\
 	main/writer.c			\
@@ -113,10 +112,11 @@ PARSER_HEADS = \
 	parsers/cxx/cxx_token.h \
 	parsers/cxx/cxx_token_chain.h \
 	\
+	parsers/cpreprocessor.h \
 	parsers/iniconf.h \
 	parsers/m4.h \
 	parsers/make.h \
-	parsers/cpreprocessor.h \
+	parsers/tcl.h \
 	\
 	$(NULL)
 
@@ -165,6 +165,7 @@ PARSER_SRCS =				\
 	parsers/go.c			\
 	parsers/html.c			\
 	parsers/iniconf.c		\
+	parsers/itcl.c			\
 	parsers/jprop.c			\
 	parsers/jscript.c		\
 	parsers/json.c			\
@@ -198,6 +199,7 @@ PARSER_SRCS =				\
 	parsers/sql.c			\
 	parsers/systemdunit.c		\
 	parsers/tcl.c			\
+	parsers/tcloo.c			\
 	parsers/tex.c			\
 	parsers/ttcn.c			\
 	parsers/verilog.c		\
@@ -223,7 +225,7 @@ XML_SRCS = \
 	 \
 	 $(NULL)
 
-YAML_HEAD = parsers/meta-yaml.h
+YAML_HEADS = parsers/yaml.h
 YAML_SRCS = \
 	  parsers/yaml.c		\
 	  \
@@ -237,7 +239,7 @@ DEBUG_SRCS = main/debug.c
 ALL_HEADS = $(MAIN_HEADS) $(PARSER_HEADS) $(DEBUG_HEADS)
 ALL_SRCS = $(MAIN_SRCS) $(PARSER_SRCS) $(DEBUG_SRCS)
 
-ENVIRONMENT_HEADS = e_msoft.h
+ENVIRONMENT_HEADS =
 ENVIRONMENT_SRCS =
 
 REGEX_HEADS = gnu_regex/regex.h
@@ -247,6 +249,10 @@ REGEX_OBJS = $(REGEX_SRCS:.c=.$(OBJEXT))
 FNMATCH_HEADS = fnmatch/fnmatch.h
 FNMATCH_SRCS = fnmatch/fnmatch.c
 FNMATCH_OBJS = $(FNMATCH_SRCS:.c=.$(OBJEXT))
+
+WIN32_HEADS = main/e_msoft.h
+WIN32_SRCS = win32/mkstemp/mkstemp.c
+WIN32_OBJS = $(WIN32_SRCS:.c=.$(OBJEXT))
 
 QUALIFIER_HEADS = dsl/es-lang-c-stdc99.h \
 		 dsl/qualifier.h \

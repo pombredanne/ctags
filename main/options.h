@@ -98,7 +98,6 @@ typedef struct sOptionValues {
 	bool printLanguage;  /* --print-language */
 	bool guessLanguageEagerly; /* --guess-language-eagerly|-G */
 	bool quiet;		      /* --quiet */
-	bool allowXcmdInHomeDir;     /* --_allow-xcmd-in-homedir */
 	bool fatalWarnings;	/* --_fatal-warnings */
 	unsigned int patternLengthLimit; /* --pattern-length-limit=N */
 	bool putFieldPrefix;		 /* --put-field-prefix */
@@ -166,24 +165,19 @@ extern void freeOptionResources (void);
 extern void freeEncodingResources (void);
 #endif
 
-/* Return vString must be freed by caller side. */
-extern vString* expandOnCorpusPathList (const char* leaf);
-extern vString* expandOnDriversPathList (const char* leaf);
-
-
 extern langType getLanguageComponentInOption (const char *const option,
 					      const char *const prefix);
 
 extern void processLanguageDefineOption (const char *const option, const char *const parameter);
 extern bool processMapOption (const char *const option, const char *const parameter);
-extern bool processDefineKind (const char *const option, const char *const parameter);
-extern bool processKindDefinition (const char *const option, const char *const parameter);
-extern bool processCorpusOption (const char *const option, const char *const parameter);
+extern bool processKinddefOption (const char *const option, const char *const parameter);
+extern bool processKindsOption (const char *const option, const char *const parameter);
+extern bool processExtradefOption (const char *const option, const char *const parameter);
+extern bool processFielddefOption (const char *const option, const char *const parameter);
 extern bool processAliasOption (const char *const option, const char *const parameter);
 #ifdef HAVE_ICONV
 extern bool processLanguageEncodingOption (const char *const option, const char *const parameter);
 #endif
-extern bool processXcmdOption (const char *const option, const char *const parameter, OptionLoadingStage stage);
 
 typedef void (* mainLoopFunc) (cookedArgs *args, void *data);
 extern void setMainLoop (mainLoopFunc func, void *data);

@@ -24,6 +24,7 @@
 #include "main.h"
 #include "routines.h"
 #include "options.h"
+#include "trashbox.h"
 #ifdef HAVE_ICONV
 # include "mbcs.h"
 #endif
@@ -108,7 +109,7 @@ typedef struct sInputFile {
 	   be referred from tagsEntryInfo instances. sourceTagPathHolder
 	   is used keeping the buffer till all processing about the current
 	   input file is done. After all processing is done, the buffers
-	   in sourceTagPathHolder are destroied. */
+	   in sourceTagPathHolder are destroyed. */
 	stringList  * sourceTagPathHolder;
 	inputLineFposMap lineFposMap;
 	vString *allLines;
@@ -159,7 +160,7 @@ extern MIOPos getInputFilePosition (void)
 	return File.filePosition.pos;
 }
 
-extern MIOPos getInputFilePositionForLine (int line)
+extern MIOPos getInputFilePositionForLine (unsigned int line)
 {
 	return File.lineFposMap.pos[(((File.lineFposMap.count > (line - 1)) \
 				      && (line > 0))? (line - 1): 0)].pos;
@@ -215,9 +216,9 @@ extern const char *getSourceFileTagPath (void)
 	return vStringValue (File.source.tagPath);
 }
 
-extern const char *getSourceLanguageName (void)
+extern langType getSourceLanguage (void)
 {
-	return getLanguageName (File.source.langInfo.type);
+	return File.source.langInfo.type;
 }
 
 extern unsigned long getSourceLineNumber (void)
@@ -615,7 +616,10 @@ extern bool openInputFile (const char *const fileName, const langType language,
 	invalidatePatternCache();
 
 	if (File.sourceTagPathHolder == NULL)
+	{
 		File.sourceTagPathHolder = stringListNew ();
+		DEFAULT_TRASH_BOX(File.sourceTagPathHolder, stringListDelete);
+	}
 	stringListClear (File.sourceTagPathHolder);
 
 	memStreamRequired = doesParserRequireMemoryStream (language);
@@ -759,7 +763,7 @@ static void readLine (vString *const vLine, MIO *const mio)
 
 		/* Turn line breaks into a canonical form. The three commonly
 		 * used forms of line breaks are: LF (UNIX/Mac OS X), CR-LF (MS-DOS) and
-		 * CR (Mac OS 9). As CR-only EOL isn't haneled by gets() and Mac OS 9
+		 * CR (Mac OS 9). As CR-only EOL isn't handled by gets() and Mac OS 9
 		 * is dead, we only handle CR-LF EOLs and convert them into LF. */
 		if (newLine && vStringLength (vLine) > 1 &&
 			vStringItem (vLine, vStringLength (vLine) - 2) == '\r')
@@ -1139,6 +1143,7 @@ static void langStackInit (langStack *langStack)
 	langStack->count = 0;
 	langStack->size  = 1;
 	langStack->languages = xCalloc (langStack->size, langType);
+	DEFAULT_TRASH_BOX(&(langStack->languages), eFreeIndirect);
 }
 
 static langType langStackTop (langStack *langStack)

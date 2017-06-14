@@ -15,6 +15,7 @@
 #include "main.h"
 #include "options.h"
 #include "routines.h"
+#include "trashbox.h"
 #include "xtag.h"
 
 #include <string.h>
@@ -55,13 +56,13 @@ static xtagObject* xtagObjects;
 
 static xtagObject* getXtagObject (xtagType type)
 {
-	Assert ((0 <= type) && (type < xtagObjectUsed));
+	Assert ((0 <= type) && ((unsigned int)type < xtagObjectUsed));
 	return (xtagObjects + type);
 }
 
 extern xtagDefinition* getXtagDefinition (xtagType type)
 {
-	Assert ((0 <= type) && (type < xtagObjectUsed));
+	Assert ((0 <= type) && ((unsigned int)type < xtagObjectUsed));
 
 	return getXtagObject (type)->def;
 }
@@ -70,7 +71,7 @@ typedef bool (* xtagPredicate) (xtagObject *pobj, langType language, const void 
 static xtagType  getXtagTypeGeneric (xtagPredicate predicate, langType language, const void *user_data)
 {
 	static bool initialized = false;
-	int i;
+	unsigned int i;
 
 	if (language == LANG_AUTO && (initialized == false))
 	{
@@ -233,8 +234,9 @@ extern void initXtagObjects (void)
 
 	xtagObjectAllocated = ARRAY_SIZE (xtagDefinitions);
 	xtagObjects = xMalloc (xtagObjectAllocated, xtagObject);
+	DEFAULT_TRASH_BOX(&xtagObjects, eFreeIndirect);
 
-	for (int i = 0; i < ARRAY_SIZE (xtagDefinitions); i++)
+	for (unsigned int i = 0; i < ARRAY_SIZE (xtagDefinitions); i++)
 	{
 		xobj = xtagObjects + i;
 		xobj->def = xtagDefinitions + i;
@@ -291,6 +293,12 @@ extern int defineXtag (xtagDefinition *def, langType language)
 	xobj->sibling  = XTAG_UNKNOWN;
 
 	updateSiblingXtag (def->xtype, def->name);
+
+	verbose ("Add extra[%d]: %s,%s in %s\n",
+			 def->xtype,
+			 def->name, def->description,
+			 getLanguageName (language));
+
 	return def->xtype;
 }
 

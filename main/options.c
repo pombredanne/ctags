@@ -49,7 +49,6 @@
 #define INVOCATION  "Usage: %s [options] [file(s)]\n"
 
 #define CTAGS_DATA_PATH_ENVIRONMENT "CTAGS_DATA_PATH"
-#define CTAGS_LIBEXEC_PATH_ENVIRONMENT "CTAGS_LIBEXEC_PATH"
 #define CTAGS_ENVIRONMENT  "CTAGS"
 #define ETAGS_ENVIRONMENT  "ETAGS"
 
@@ -79,7 +78,6 @@
 
 #define SUBDIR_OPTLIB "optlib"
 #define SUBDIR_PRELOAD "preload"
-#define SUBDIR_DRIVERS "drivers"
 
 #define ENTER(STAGE) do {							\
 		Assert (Stage <= OptionLoadingStage##STAGE); \
@@ -128,7 +126,6 @@ static stringList *OptionFiles;
 typedef stringList searchPathList;
 static searchPathList *OptlibPathList;
 static searchPathList *PreloadPathList;
-static searchPathList *DriversPathList;
 
 static stringList* Excluded;
 static bool FilesRequired = true;
@@ -172,7 +169,6 @@ optionValues Option = {
 	false,	    /* --print-language */
 	false,	    /* --guess-language-eagerly(-G) */
 	false,	    /* --quiet */
-	false,	    /* --_allow-xcmd-in-homedir */
 	false,	    /* --_fatal-warnings */
 	.patternLengthLimit = 96,
 	.putFieldPrefix = false,
@@ -249,6 +245,8 @@ static optionDescription LongOptionDescription [] = {
 #else
  {0,"       Uses the specified type of EX command to locate tags [mix]."},
 #endif
+ {1,"  --extradef-<LANG>=name,desc"},
+ {1,"       Define new extra for <LANG>. \"--extra-<LANG>=+{name}\" enables it."},
  {1,"  --extras=[+|-]flags"},
  {1,"      Include extra tag entries for selected information (flags: \"Ffq.\") [F]."},
  {1,"  --extras-<LANG|*>=[+|-]flags"},
@@ -291,7 +289,7 @@ static optionDescription LongOptionDescription [] = {
  {1,"      Specify encoding of the LANG input files."},
 #endif
  {1,"  --kinddef-<LANG>=letter,name,desc"},
- {1,"       [THIS IS A STUB. DON'T USE THIS] Define new kind for <LANG>."},
+ {1,"       Define new kind for <LANG>."},
  {1,"  --kinds-<LANG>=[+|-]kinds, or"},
  {1,"  --<LANG>-kinds=[+|-]kinds"},
  {1,"       Enable/disable tag kinds for language <LANG>."},
@@ -305,8 +303,6 @@ static optionDescription LongOptionDescription [] = {
  {1,"       Restrict files scanned for tags to those mapped to languages"},
  {1,"       specified in the comma-separated 'list'. The list can contain any"},
  {1,"       built-in or user-defined language [all]."},
- {1,"  --libexec-dir=[+]DIR"},
- {1,"      Add or set DIR to libexec directory search path."},
  {1,"  --license"},
  {1,"       Print details of software license."},
  {0,"  --line-directives=[yes|no]"},
@@ -410,17 +406,9 @@ static optionDescription LongOptionDescription [] = {
  {1,"  --version"},
  {1,"       Print version identifier to standard output."},
  {1,"  --with-list-header=[yes|no]"},
- {1,"       Preprend the column descriptions in --list- output. [yes]"},
+ {1,"       Prepend the column descriptions in --list- output. [yes]"},
  {1,"       --list-extras, --list-fields, --list-kinds-full, and --list-params support this option."},
  {1,"       Specify before --list-* option."},
-#ifdef HAVE_COPROC
- {1,"  --xcmd-<LANG>=parser_command_path|parser_command_name"},
- {1,"       Define external parser command path or name for specific language."},
-#endif
- {1,"  --_allow-xcmd-in-homedir"},
- {1,"       Allow specifying --xcmd-<LANG> option in ~/.ctags and/or ~/.ctags/*."},
- {1,"       By default it is not allowed. This option itself can be specified only"},
- {1,"       in /etc or /usr/local/etc."},
  {1,"  --_anonhash=fname"},
  {1,"       Used in u-ctags test harness"},
  {1,"  --_echo=msg"},
@@ -428,6 +416,8 @@ static optionDescription LongOptionDescription [] = {
  {1,"       of loading option files."},
  {1,"  --_fatal-warnings"},
  {1,"       Make all warnings fatal."},
+ {1,"  --_fielddef-<LANG>=name,description"},
+ {1,"       EXPERIMENTAL, Define new field for <LANG>."},
  {1,"  --_force-quit=[num]"},
  {1,"       Quit when the option is processed. Useful to debug the chain"},
  {1,"       of loading option files."},
@@ -487,9 +477,6 @@ static const char *const Features [] = {
 #endif
 #ifdef HAVE_SCANDIR
 	"option-directory",
-#endif
-#ifdef HAVE_COPROC
-	"coproc",
 #endif
 #ifdef HAVE_LIBXML
 	"xpath",
@@ -1150,7 +1137,7 @@ static void processExtraTagsOption (
 	else if (*p != '+'  &&  *p != '-')
 		resetXtags (LANG_IGNORE, false);
 
-	longName = vStringNewOrClear (longName);
+	longName = vStringNewOrClearWithAutoRelease (longName);
 
 	while ((c = *p++) != '\0')
 	{
@@ -1229,7 +1216,7 @@ static void processFieldsOption (
 	static vString * longName;
 	bool inLongName = false;
 
-	longName = vStringNewOrClear (longName);
+	longName = vStringNewOrClearWithAutoRelease (longName);
 
 	if (*p == '*')
 	{
@@ -1316,7 +1303,7 @@ static void processFormatOption (
 }
 
 #ifdef HAVE_ICONV
-static void processInputEncodingOption(const char *const option,
+static void processInputEncodingOption(const char *const option CTAGS_ATTR_UNUSED,
 				const char *const parameter)
 {
 	if (Option.inputEncoding)
@@ -1329,7 +1316,7 @@ static void processInputEncodingOption(const char *const option,
 	Option.inputEncoding = eStrdup(parameter);
 }
 
-static void processOutputEncodingOption(const char *const option,
+static void processOutputEncodingOption(const char *const option CTAGS_ATTR_UNUSED,
 				const char *const parameter)
 {
 	if (Option.outputEncoding)
@@ -1847,22 +1834,6 @@ static void processListExtrasOption (
 	exit (0);
 }
 
-static void processListFileKindDefinition (
-		const char *const option, const char *const parameter)
-{
-	if (parameter [0] == '\0' || strcasecmp (parameter, "all") == 0)
-		printLanguageFileKind (LANG_AUTO);
-	else
-	{
-		langType language = getNamedLanguage (parameter, 0);
-		if (language == LANG_IGNORE)
-			error (FATAL, "Unknown language \"%s\" in \"%s\" option", parameter, option);
-		else
-			printLanguageFileKind (language);
-	}
-	exit (0);
-}
-
 static void processListKindsOption (
 		const char *const option, const char *const parameter)
 {
@@ -1981,7 +1952,7 @@ static void processListRolesOptions (const char *const option CTAGS_ATTR_UNUSED,
 		vString* vstr = vStringNewInit (parameter);
 		vStringCatS (vstr, (sep? "*": ".*"));
 		processListRolesOptions (option, vStringValue (vstr));
-		/* The control should never reache here. */
+		/* The control should never reached here. */
 	}
 
 	kindletters = sep + 1;
@@ -2104,11 +2075,6 @@ static vString* expandOnOptlibPathList (const char* leaf)
 	vStringDelete (leaf_with_suffix);
 
 	return r;
-}
-
-extern vString* expandOnDriversPathList (const char* leaf)
-{
-	return expandOnSearchPathList (DriversPathList, leaf, doesExecutableExist);
 }
 
 static void processOptionFile (
@@ -2397,11 +2363,6 @@ static void resetDataPathList (void)
 	resetPathList (&OptlibPathList, "OptlibPathList");
 }
 
-static void resetLibexecPathList (void)
-{
-	resetPathList (&DriversPathList, "DriversPathList");
-}
-
 static void appendToPathList (const char *const dir, const char *const subdir, searchPathList* const pathList, const char *const varname,
 				   bool report_in_verboe, const char* const action)
 {
@@ -2432,12 +2393,6 @@ static void appendToDataPathList (const char *const dir, bool from_cmdline)
 				       false, NULL);
 }
 
-static void appendToLibexecPathList (const char *const dir, bool from_cmdline)
-{
-	appendToPathList (dir, SUBDIR_DRIVERS, DriversPathList, "DriversPathList",
-			       from_cmdline, from_cmdline? "Append": NULL);
-}
-
 static void prependToDataPathList (const char *const dir, bool from_cmdline)
 {
 	prependToPathList (dir, SUBDIR_OPTLIB, OptlibPathList, "OptlibPathList",
@@ -2445,12 +2400,6 @@ static void prependToDataPathList (const char *const dir, bool from_cmdline)
 	if (!from_cmdline)
 		prependToPathList (dir, SUBDIR_PRELOAD, PreloadPathList, "PreloadPathList",
 					false, NULL);
-}
-
-static void prependToLibexecPathList (const char *const dir, bool from_cmdline)
-{
-	prependToPathList (dir, SUBDIR_DRIVERS, DriversPathList, "DriversPathList",
-			   from_cmdline, from_cmdline? "Prepend": NULL);
 }
 
 static void processDataDir (
@@ -2476,29 +2425,6 @@ static void processDataDir (
 	}
 }
 
-static void processLibexecDir (const char *const option,
-			       const char *const parameter)
-{
-	const char* path;
-
-	if (parameter == NULL || parameter[0] == '\0')
-		error (FATAL, "Path for a directory is needed for \"%s\" option", option);
-
-	if (parameter[0] == '+')
-	{
-		path = parameter + 1;
-		prependToLibexecPathList (path, true);
-	}
-	else if (!strcmp (parameter, "NONE"))
-		resetLibexecPathList ();
-	else
-	{
-		resetLibexecPathList ();
-		path = parameter;
-		appendToLibexecPathList (path, true);
-	}
-}
-
 static void processMaxRecursionDepthOption (const char *const option, const char *const parameter)
 {
 	if (parameter == NULL || parameter[0] == '\0')
@@ -2519,7 +2445,7 @@ static void processPatternLengthLimit(const char *const option, const char *cons
 		error (FATAL, "-%s: Invalid pattern length limit", option);
 }
 
-static bool* redirectToXtag(const booleanOption *const option)
+static bool* redirectToXtag(booleanOption *const option)
 {
 	/* WARNING/TODO: This function breaks capsulization. */
 	xtagType t = (xtagType)option->pValue;
@@ -2560,14 +2486,12 @@ static parametricOption ParametricOptions [] = {
 	{ "languages",              processLanguagesOption,         false,  STAGE_ANY },
 	{ "langdef",                processLanguageDefineOption,    false,  STAGE_ANY },
 	{ "langmap",                processLanguageMapOption,       false,  STAGE_ANY },
-	{ "libexec-dir",            processLibexecDir,              false,  STAGE_ANY },
 	{ "license",                processLicenseOption,           true,   STAGE_ANY },
 	{ "list-aliases",           processListAliasesOption,       true,   STAGE_ANY },
 	{ "list-extensions",        processListExtensionsOption,    true,   STAGE_ANY },
 	{ "list-extras",            processListExtrasOption,        true,   STAGE_ANY },
 	{ "list-features",          processListFeaturesOption,      true,   STAGE_ANY },
 	{ "list-fields",            processListFieldsOption,        true,   STAGE_ANY },
-	{ "list-file-kind",         processListFileKindDefinition,      true,   STAGE_ANY },
 	{ "list-kinds",             processListKindsOption,         true,   STAGE_ANY },
 	{ "list-kinds-full",        processListKindsOption,         true,   STAGE_ANY },
 	{ "list-languages",         processListLanguagesOption,     true,   STAGE_ANY },
@@ -2610,7 +2534,6 @@ static booleanOption BooleanOptions [] = {
 	{ "totals",         &Option.printTotals,            true,  STAGE_ANY },
 	{ "verbose",        &Option.verbose,                false, STAGE_ANY },
 	{ "with-list-header", &Option.withListHeader,       true,  STAGE_ANY },
-	{ "_allow-xcmd-in-homedir", &Option.allowXcmdInHomeDir, true, ACCEPT(Etc)|ACCEPT(LocalEtc) },
 	{ "_fatal-warnings",&Option.fatalWarnings,          false, STAGE_ANY },
 };
 
@@ -2766,7 +2689,7 @@ static bool processLangSpecificFieldsOption (const char *const option,
 	if (language == LANG_IGNORE)
 	{
 		error (WARNING, "Unknown language: %s (ignoring \"--%s\")", lang, option);
-		/* The option is consumed in tihs function. */
+		/* The option is consumed in this function. */
 		return true;
 	}
 
@@ -2786,7 +2709,7 @@ static bool processLangSpecificFieldsOption (const char *const option,
 	else if (*p != '+' && *p != '-')
 		error (WARNING, "Wrong per language field specification: %s", p);
 
-	longName = vStringNewOrClear (longName);
+	longName = vStringNewOrClearWithAutoRelease (longName);
 	while ((c = *p++) != '\0')
 	{
 		switch (c)
@@ -2867,7 +2790,7 @@ static bool processLangSpecificExtraOption (const char *const option,
 	if (language == LANG_IGNORE)
 	{
 		error (WARNING, "Unknown language: %s (ignoring \"--%s\")", lang, option);
-		/* The option is consumed in tihs function. */
+		/* The option is consumed in this function. */
 		return true;
 	}
 
@@ -2887,7 +2810,7 @@ static bool processLangSpecificExtraOption (const char *const option,
 	else if (*p != '+' && *p != '-')
 		error (WARNING, "Wrong per language extra specification: %s", p);
 
-	longName = vStringNewOrClear (longName);
+	longName = vStringNewOrClearWithAutoRelease (longName);
 	while ((c = *p++) != '\0')
 	{
 		switch (c)
@@ -2964,19 +2887,21 @@ static void processLongOption (
 		;
 	else if (processLangSpecificFieldsOption(option, parameter))
 		 ;
+	else if (processExtradefOption(option, parameter))
+		;
+	else if (processFielddefOption(option, parameter))
+		;
 	else if (processLangSpecificExtraOption(option, parameter))
 		;
 	else if (processParametricOption (option, parameter))
 		;
-	else if (processDefineKind (option, parameter))
+	else if (processKinddefOption (option, parameter))
 		;
-	else if (processKindDefinition (option, parameter))
+	else if (processKindsOption (option, parameter))
 		;
 	else if (processAliasOption (option, parameter))
 		;
 	else if (processRegexOption (option, parameter))
-		;
-	else if (processXcmdOption (option, parameter, Stage))
 		;
 	else if (processMapOption (option, parameter))
 		;
@@ -3461,53 +3386,6 @@ static void installDataPathList (void)
 #endif
 }
 
-static void installLibexecPathList (void)
-{
-	char* libexecPath = getenv (CTAGS_LIBEXEC_PATH_ENVIRONMENT);
-
-	DriversPathList = stringListNew ();
-
-	if (libexecPath)
-	{
-		char* needle;
-
-		while (libexecPath[0])
-		{
-			needle = strchr (libexecPath, ':');
-			if (needle)
-				*needle = '\0';
-
-			appendToDataPathList (libexecPath, false);
-
-			if (needle)
-			{
-				*needle = ':';
-				libexecPath = needle + 1;
-			}
-			else
-				break;
-		}
-	}
-
-	{
-		vString *home = getHome ();
-		if (home != NULL)
-		{
-			char *ctags_d;
-
-			ctags_d = combinePathAndFile (vStringValue (home), ".ctags.d");
-
-			appendToLibexecPathList (ctags_d, false);
-			eFree (ctags_d);
-			vStringDelete (home);
-		}
-	}
-
-#ifdef PKGLIBEXECDIR
-	appendToLibexecPathList (PKGLIBEXECDIR, false);
-#endif
-}
-
 /*
 *   Option initialization
 */
@@ -3516,10 +3394,8 @@ extern void initOptions (void)
 {
 	OptionFiles = stringListNew ();
 	installDataPathList ();
-	installLibexecPathList ();
 	verboseSearchPathList (OptlibPathList,  "OptlibPathList");
 	verboseSearchPathList (PreloadPathList, "PreloadPathList");
-	verboseSearchPathList (DriversPathList, "DriversPathList");
 
 	verbose ("Setting option defaults\n");
 	installHeaderListDefaults ();
@@ -3603,7 +3479,6 @@ extern void freeOptionResources (void)
 
 	freeSearchPathList (&OptlibPathList);
 	freeSearchPathList (&PreloadPathList);
-	freeSearchPathList (&DriversPathList);
 
 	freeList (&OptionFiles);
 }

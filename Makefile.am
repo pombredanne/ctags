@@ -1,7 +1,16 @@
 include $(top_srcdir)/source.mak
 
 # Test cases are added to EXTRA_DIST in makefiles/test-cases.mak
-EXTRA_DIST   = $(NULL)
+EXTRA_DIST   = README.md autogen.sh \
+	       .ctags .dir-locals.el .editorconfig .gdbinit .gitignore \
+	       .indent.pro .uncrustify.cfg \
+	       gnu_regex/README.txt gnu_regex/regcomp.c gnu_regex/regexec.c \
+	       gnu_regex/regex_internal.c gnu_regex/regex_internal.h \
+	       $(WIN32_HEADS) $(WIN32_SRCS) mk_mingw.mak mk_mvc.mak \
+	       win32/mkstemp/COPYING.MinGW-w64-runtime.txt \
+	       win32/ctags_vs2013.sln \
+	       win32/ctags_vs2013.vcxproj win32/ctags_vs2013.vcxproj.filters \
+	       win32/gen-repoinfo.bat
 
 bin_PROGRAMS = ctags
 
@@ -79,14 +88,9 @@ optlib2c_verbose_ = $(optlib2c_verbose_@AM_DEFAULT_V@)
 optlib2c_verbose_0 = @echo OPTLIB2C "  $@";
 OPTLIB2C = $(srcdir)/misc/optlib2c
 %.c: %.ctags $(OPTLIB2C) Makefile
-	$(optlib2c_verbose)$(OPTLIB2C) --transform-xcmd="$(program_transform_name)" $< > $@
+	$(optlib2c_verbose)$(OPTLIB2C) $< > $@
 endif
 dist_ctags_SOURCES = $(ALL_HEADS) $(ALL_SRCS)
-
-if ENABLE_XCMD
-driversdir = $(pkglibexecdir)/drivers
-dist_drivers_SCRIPTS = libexec/drivers/coffeetags
-endif
 
 if INSTALL_ETAGS
 install-exec-hook:
@@ -103,12 +107,14 @@ include $(top_srcdir)/makefiles/test-cases.mak
 include $(top_srcdir)/makefiles/help.mak
 
 if HAVE_RST2MAN
-man_MANS = man/ctags.1
+man_MANS = man/ctags.1 man/ctags-incompatibilities.7 man/ctags-optlib.7
 rst2man_verbose = $(rst2man_verbose_@AM_V@)
 rst2man_verbose_ = $(rst2man_verbose_@AM_DEFAULT_V@)
 rst2man_verbose_0 = @echo RST2MAN "  $@";
-SUFFIXES = .1.rst .1
+SUFFIXES = .1.rst .1 .7.rst .7
 .1.rst.1:
+	$(rst2man_verbose)$(RST2MAN) $< $@
+.7.rst.7:
 	$(rst2man_verbose)$(RST2MAN) $< $@
 endif
 
